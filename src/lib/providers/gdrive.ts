@@ -65,7 +65,7 @@ export async function uploadToGoogleDrive(
 
   return {
     fileId,
-    downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
+    downloadUrl: `/api/download/gdrive/${fileId}`,
     webViewLink: res.data.webViewLink ?? '',
   };
 }
@@ -114,6 +114,6 @@ export async function listGoogleDriveFiles(): Promise<
     name:         f.name!,
     size:         f.size ?? '0',
     modifiedTime: f.modifiedTime ?? '',
-    downloadUrl:  `https://drive.google.com/uc?export=download&id=${f.id}`,
+    downloadUrl:  `/api/download/gdrive/${f.id}`,
   }));
 }
