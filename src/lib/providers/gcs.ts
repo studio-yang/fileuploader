@@ -27,14 +27,14 @@ export async function generateGCSUploadUrl(
   const storage = getStorage();
   const file    = storage.bucket(BUCKET()).file(`uploads/${Date.now()}_${fileName}`);
 
-  const [uploadUrl] = await file.generateSignedUrl({
+  const [uploadUrl] = await file.getSignedUrl({
     version:     'v4',
     action:      'write',
     expires:     Date.now() + 60 * 60 * 1000, // 1 hour
     contentType,
   });
 
-  const [downloadUrl] = await file.generateSignedUrl({
+  const [downloadUrl] = await file.getSignedUrl({
     version: 'v4',
     action:  'read',
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -58,7 +58,7 @@ export async function createGCSResumableSession(
     origin:   process.env.ALLOWED_ORIGINS?.split(',')[0],
   });
 
-  const [downloadUrl] = await file.generateSignedUrl({
+  const [downloadUrl] = await file.getSignedUrl({
     version: 'v4',
     action:  'read',
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -84,7 +84,7 @@ export async function uploadStreamToGCS(
       .on('error',  reject);
   });
 
-  const [downloadUrl] = await file.generateSignedUrl({
+  const [downloadUrl] = await file.getSignedUrl({
     version: 'v4',
     action:  'read',
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -102,7 +102,7 @@ export async function listGCSFiles(): Promise<
   return Promise.all(
     files.map(async (f) => {
       const [meta] = await f.getMetadata();
-      const [url]  = await f.generateSignedUrl({
+      const [url]  = await f.getSignedUrl({
         version: 'v4',
         action:  'read',
         expires: Date.now() + 60 * 60 * 1000,
