@@ -1,43 +1,7 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-// ── Service Account auth（後端用） ────────────────────────────────────────────
-function getServiceAccountAuth() {
-  const keyBase64 = process.env.GDRIVE_SERVICE_ACCOUNT_KEY ?? '';
-  const credentials = JSON.parse(
-    Buffer.from(keyBase64, 'base64').toString('utf-8'),
-  );
-  return new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
-  });
-}
-
-/**
- * 取得 Service Account 的短效 Access Token（有效期約 1 小時）
- * 供前端直接打 Google Drive API 使用
- */
-export async function getServiceAccountAccessToken(): Promise<{
-  accessToken: string;
-  expiresAt:   number; // Unix ms
-  folderId:    string;
-}> {
-  const auth   = getServiceAccountAuth();
-  const client = await auth.getClient();
-  const token  = await client.getAccessToken();
-  if (!token.token) throw new Error('無法取得 Service Account Access Token');
-
-  // token.res?.data?.expires_in 通常是 3600 秒
-  const expiresIn = (token.res?.data as any)?.expires_in ?? 3600;
-
-  return {
-    accessToken: token.token,
-    expiresAt:   Date.now() + expiresIn * 1000,
-    folderId:    process.env.GOOGLE_DRIVE_FOLDER_ID ?? '',
-  };
-}
-
-// ── OAuth2 auth（後端串流上傳，小型檔案用，保留相容） ─────────────────────────
+// ── OAuth2 auth（後端用） ───────────────────────────────────────────────────
 function getOAuth2Client() {
   const oauth2 = new google.auth.OAuth2(
     process.env.GOOGLE_DRIVE_CLIENT_ID,
@@ -52,7 +16,26 @@ function getDriveClient() {
   return google.drive({ version: 'v3', auth: getOAuth2Client() });
 }
 
-// ── Upload (resumable multipart, supports large files) ────────────────────────
+/**
+ * 取得 OAuth Access Token（供前端 Resumable Upload 使用）
+ */
+export async function getServiceAccountAccessToken(): Promise<{
+  accessToken: string;
+  expiresAt:   number;
+  folderId:    string;
+}> {
+  const oauth2 = getOAuth2Client();
+  const { token, res } = await oauth2.getAccessToken();
+  if (!token) throw new Error('無法取得 OAuth Access Token');
+  const expiresIn = (res?.data as any)?.expires_in ?? 3600;
+  return {
+    accessToken: token,
+    expiresAt:   Date.now() + expiresIn * 1000,
+    folderId:    process.env.GOOGLE_DRIVE_FOLDER_ID ?? '',
+  };
+}
+
+// ── Upload (後端串流上傳，小檔案備用) ─────────────────────────────────────────
 export async function uploadToGoogleDrive(
   fileName:    string,
   mimeType:    string,
@@ -67,17 +50,13 @@ export async function uploadToGoogleDrive(
       name:    fileName,
       parents: folderId ? [folderId] : undefined,
     },
-    media: {
-      mimeType,
-      body: stream,
-    },
+    media: { mimeType, body: stream },
     fields: 'id, webViewLink, webContentLink',
     supportsAllDrives: true,
   });
 
   const fileId = res.data.id!;
 
-  // Make file publicly readable so we can share the link
   await drive.permissions.create({
     fileId,
     requestBody: { role: 'reader', type: 'anyone' },
@@ -91,8 +70,8 @@ export async function uploadToGoogleDrive(
   };
 }
 
-// ── List files in target folder ───────────────────────────────────────────────
-export async function listGoogleDriveFiles(): Promise<
+// ── List files in target folder + 自動設定公開權限 ────────────────────────────
+export async function listGoogleDriveFiles(): Promise
   { id: string; name: string; size: string; modifiedTime: string; downloadUrl: string }[]
 > {
   const drive    = getDriveClient();
@@ -103,12 +82,34 @@ export async function listGoogleDriveFiles(): Promise<
 
   const res = await drive.files.list({
     q:      query,
-    fields: 'files(id, name, size, modifiedTime)',
+    fields: 'files(id, name, size, modifiedTime, permissions)',
     pageSize: 100,
     orderBy:  'modifiedTime desc',
   });
 
-  return (res.data.files ?? []).map((f) => ({
+  const files = res.data.files ?? [];
+
+  // 自動為「沒有公開權限」的檔案加上公開權限（讓直接放進資料夾的檔案也能下載）
+  await Promise.all(
+    files.map(async (f) => {
+      const hasPublicPermission = f.permissions?.some(
+        (p) => p.type === 'anyone' && p.role === 'reader',
+      );
+      if (!hasPublicPermission) {
+        try {
+          await drive.permissions.create({
+            fileId: f.id!,
+            requestBody: { role: 'reader', type: 'anyone' },
+            supportsAllDrives: true,
+          });
+        } catch (err) {
+          console.warn(`[gdrive] 無法為 ${f.name} 設定公開權限:`, err);
+        }
+      }
+    }),
+  );
+
+  return files.map((f) => ({
     id:           f.id!,
     name:         f.name!,
     size:         f.size ?? '0',
