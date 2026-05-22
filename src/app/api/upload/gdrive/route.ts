@@ -6,9 +6,6 @@ import busboy from 'busboy';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Disable Next.js body parser — we handle the stream ourselves
-export const config = { api: { bodyParser: false } };
-
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get('content-type') ?? '';
