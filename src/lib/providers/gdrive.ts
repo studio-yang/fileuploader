@@ -65,7 +65,7 @@ export async function uploadToGoogleDrive(
 
   return {
     fileId,
-    downloadUrl: `/api/download/gdrive/${fileId}`,
+    downloadUrl:  `/api/download/gdrive/${f.id}`,
     webViewLink: res.data.webViewLink ?? '',
   };
 }
