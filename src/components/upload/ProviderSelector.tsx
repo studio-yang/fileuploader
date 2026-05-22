@@ -49,7 +49,7 @@ const ALL_PROVIDERS = [
   },
 ];
 
-const PROVIDERS = ALL_PROVIDERS.filter((p) => ENABLED[p.id]);
+const PROVIDERS = ALL_PROVIDERS.filter((p) => ENABLED[p.id as keyof typeof ENABLED]);
 
 export default function ProviderSelector({ selected, onChange }: Props) {
   return (
