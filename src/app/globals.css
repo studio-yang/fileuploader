@@ -45,11 +45,11 @@
   --glass-stroke:      rgba(255, 255, 255, 0.10);
   --glass-stroke-hl:   rgba(255, 255, 255, 0.18);
 
-  /* 文字（深底） */
-  --text-primary:   rgba(255, 255, 255, 0.97);
-  --text-secondary: rgba(235, 235, 245, 0.78);
-  --text-tertiary:  rgba(235, 235, 245, 0.55);
-  --text-quaternary:rgba(235, 235, 245, 0.30);
+  /* 文字（深底）— 提升對比度 */
+  --text-primary:   rgba(255, 255, 255, 1.00);
+  --text-secondary: rgba(245, 245, 250, 0.92);
+  --text-tertiary:  rgba(235, 235, 245, 0.78);
+  --text-quaternary:rgba(235, 235, 245, 0.55);
 
   /* iOS 圓角 */
   --radius-sm:  10px;
@@ -198,7 +198,7 @@ body::after {
   }
 
   /* 帶色玻璃 — 都偏藍系為主，其他色彩稍微低調 */
-  .liquid-tint-blue   { background: linear-gradient(135deg, rgba(46,125,255,0.25), rgba(10,132,255,0.12)); border-color: rgba(46,125,255,0.35); color: var(--tech-blue-200); }
+  .liquid-tint-blue   { background: linear-gradient(135deg, rgba(46,125,255,0.25), rgba(10,132,255,0.12)); border-color: rgba(46,125,255,0.35); color: var(--tech-blue-100); }
   .liquid-tint-indigo { background: linear-gradient(135deg, rgba(94,92,230,0.25), rgba(94,92,230,0.12)); border-color: rgba(94,92,230,0.35); color: #9d9bff; }
   .liquid-tint-cyan   { background: linear-gradient(135deg, rgba(64,200,224,0.25), rgba(64,200,224,0.12)); border-color: rgba(64,200,224,0.35); color: var(--ios-cyan); }
   .liquid-tint-purple { background: linear-gradient(135deg, rgba(191,90,242,0.22), rgba(191,90,242,0.10)); border-color: rgba(191,90,242,0.32); color: var(--ios-purple); }
