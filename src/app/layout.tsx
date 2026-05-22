@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title:       'FileFlow — Large File Transfer',
+  title:       'FileUploader For CHB BANK — Large File Transfer',
   description: 'Secure large file upload & download with GCS, Google Drive, and GitHub Releases',
   icons:       { icon: '/favicon.ico' },
 };

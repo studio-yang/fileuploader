@@ -138,7 +138,7 @@ export default function Home() {
                 <path d="M8 13V3"/><path d="M3 8L8 3L13 8"/>
               </svg>
             </div>
-            <span className="font-display font-bold text-[18px] tracking-tight text-primary">FileFlow</span>
+            <span className="font-display font-bold text-[18px] tracking-tight text-primary">FileUploader For CHB BANK</span>
           </div>
 
           {/* Nav tabs */}
