@@ -127,19 +127,23 @@ export default function Home() {
       <header className="liquid-glass-strong sticky top-0 z-40 px-6 lg:px-10">
         <div className="max-w-[1440px] mx-auto flex items-center gap-4 h-16">
 
-          {/* Logo */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="w-9 h-9 rounded-ios-md flex items-center justify-center liquid-lensing flex-shrink-0"
-              style={{
-                background: 'linear-gradient(135deg, var(--tech-blue-500) 0%, var(--ios-blue) 50%, var(--ios-cyan) 100%)',
-                boxShadow: '0 4px 16px rgba(10,132,255,0.40), inset 0 1px 0 rgba(255,255,255,0.30)',
-              }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 13V3"/><path d="M3 8L8 3L13 8"/>
-              </svg>
-            </div>
-            <span className="font-display font-bold text-[18px] tracking-tight text-primary">CHB 外部檔案傳輸平台</span>
-          </div>
+{/* Logo */}
+
+  href="/"
+  className="flex items-center gap-3 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+  aria-label="回到首頁"
+>
+  <div className="w-9 h-9 rounded-ios-md flex items-center justify-center liquid-lensing flex-shrink-0"
+    style={{
+      background: 'linear-gradient(135deg, var(--tech-blue-500) 0%, var(--ios-blue) 50%, var(--ios-cyan) 100%)',
+      boxShadow: '0 4px 16px rgba(10,132,255,0.40), inset 0 1px 0 rgba(255,255,255,0.30)',
+    }}>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 13V3"/><path d="M3 8L8 3L13 8"/>
+    </svg>
+  </div>
+  <span className="font-display font-bold text-[18px] tracking-tight text-primary">CHB 外部檔案傳輸平台</span>
+</a>
 
           {/* Nav tabs */}
           <div className="liquid-glass-thin rounded-full p-1 flex gap-1 ml-6">
