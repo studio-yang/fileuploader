@@ -1,0 +1,42 @@
+{
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/upload/gdrive/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "src/app/api/upload/github/route.ts": {
+      "maxDuration": 60,
+      "memory": 512
+    },
+    "src/app/api/upload/presigned/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/upload/gdrive-token/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/files/route.ts": {
+      "maxDuration": 15
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",  "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,x-file-name,x-content-type,x-file-size" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options",           "value": "SAMEORIGIN" },
+        { "key": "X-Content-Type-Options",    "value": "nosniff" },
+        { "key": "Referrer-Policy",           "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy",        "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+      ]
+    }
+  ]
+}

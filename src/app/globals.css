@@ -1,0 +1,299 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── iOS 27 Liquid Glass · Tech Blue Dark Theme ─────────────────────────── */
+:root {
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  --font-mono:    'SF Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  /* 時尚科技藍系 */
+  --tech-blue-50:  #E6F0FF;
+  --tech-blue-100: #BDD9FF;
+  --tech-blue-200: #7BB3FF;
+  --tech-blue-300: #4D94FF;
+  --tech-blue-400: #2E7DFF;
+  --tech-blue-500: #0066FF;   /* 主色 */
+  --tech-blue-600: #0052CC;
+  --tech-blue-700: #003D99;
+  --tech-blue-800: #002966;
+  --tech-blue-900: #001A40;
+
+  /* iOS 系統色（深色版本） */
+  --ios-blue:   #0A84FF;
+  --ios-indigo: #5E5CE6;
+  --ios-purple: #BF5AF2;
+  --ios-pink:   #FF375F;
+  --ios-red:    #FF453A;
+  --ios-orange: #FF9F0A;
+  --ios-yellow: #FFD60A;
+  --ios-green:  #30D158;
+  --ios-mint:   #66D4CF;
+  --ios-teal:   #40C8E0;
+  --ios-cyan:   #64D2FF;
+
+  /* Liquid Glass — Dark 版本 */
+  --glass-1: rgba(255, 255, 255, 0.10);
+  --glass-2: rgba(255, 255, 255, 0.07);
+  --glass-3: rgba(255, 255, 255, 0.05);
+  --glass-4: rgba(255, 255, 255, 0.03);
+
+  --glass-edge-top:    rgba(255, 255, 255, 0.18);
+  --glass-edge-bottom: rgba(255, 255, 255, 0.04);
+  --glass-stroke:      rgba(255, 255, 255, 0.10);
+  --glass-stroke-hl:   rgba(255, 255, 255, 0.18);
+
+  /* 文字（深底） */
+  --text-primary:   rgba(255, 255, 255, 0.97);
+  --text-secondary: rgba(235, 235, 245, 0.78);
+  --text-tertiary:  rgba(235, 235, 245, 0.55);
+  --text-quaternary:rgba(235, 235, 245, 0.30);
+
+  /* iOS 圓角 */
+  --radius-sm:  10px;
+  --radius-md:  14px;
+  --radius-lg:  22px;
+  --radius-xl:  28px;
+  --radius-2xl: 36px;
+
+  /* 陰影（深色用） */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.20), 0 1px 1px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.30), 0 2px 4px rgba(0,0,0,0.20);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,0.40), 0 6px 12px rgba(0,0,0,0.25);
+  --shadow-xl: 0 24px 60px rgba(0,0,0,0.50), 0 10px 20px rgba(0,0,0,0.30);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ─── 深色科技藍背景 ─────────────────────────────────────────────────────── */
+body {
+  background:
+    /* Apple visionOS 風格：深藍灰底，帶柔和彩色光暈 */
+    radial-gradient(ellipse 65% 50% at 12% 8%,   rgba(46, 125, 255, 0.30), transparent 60%),
+    radial-gradient(ellipse 55% 55% at 88% 18%,  rgba(94, 92, 230, 0.22),  transparent 60%),
+    radial-gradient(ellipse 75% 50% at 50% 48%,  rgba(10, 132, 255, 0.16), transparent 65%),
+    radial-gradient(ellipse 60% 55% at 18% 88%,  rgba(64, 200, 224, 0.15), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 88% 88%,  rgba(191, 90, 242, 0.14), transparent 60%),
+    /* 深藍灰底色 — 不那麼黑，像 visionOS 的空間感 */
+    linear-gradient(135deg, #141b2d 0%, #1a2340 35%, #1e2a4a 75%, #141b2d 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* 漂浮光暈 — 亮度調低，更柔和 */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(circle 500px at 25% 30%, rgba(46, 125, 255, 0.14),  transparent),
+    radial-gradient(circle 400px at 75% 70%, rgba(10, 132, 255, 0.10),  transparent),
+    radial-gradient(circle 300px at 60% 20%, rgba(94, 92, 230, 0.10),   transparent);
+  filter: blur(120px);
+  animation: ambientDrift 35s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* 星點微光 — 稀疏輕柔 */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,0.4) 0.5px, transparent 1px),
+    radial-gradient(circle at 30% 80%, rgba(255,255,255,0.3) 0.5px, transparent 1px),
+    radial-gradient(circle at 60% 40%, rgba(255,255,255,0.5) 0.5px, transparent 1px),
+    radial-gradient(circle at 80% 90%, rgba(255,255,255,0.3) 0.5px, transparent 1px),
+    radial-gradient(circle at 90% 15%, rgba(255,255,255,0.4) 0.5px, transparent 1px),
+    radial-gradient(circle at 45% 65%, rgba(255,255,255,0.35) 0.5px, transparent 1px),
+    radial-gradient(circle at 15% 75%, rgba(255,255,255,0.3) 0.5px, transparent 1px),
+    radial-gradient(circle at 75% 25%, rgba(255,255,255,0.4) 0.5px, transparent 1px);
+  background-size: 400px 400px, 350px 350px, 500px 500px, 450px 450px, 380px 380px, 420px 420px, 360px 360px, 480px 480px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@keyframes ambientDrift {
+  0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+  33%  { transform: translate(40px, -30px) scale(1.1) rotate(2deg); }
+  66%  { transform: translate(-30px, 20px) scale(0.95) rotate(-1deg); }
+  100% { transform: translate(20px, 30px) scale(1.05) rotate(1deg); }
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); background-clip: content-box; }
+
+/* ─── Liquid Glass 核心樣式（深色） ─────────────────────────────────────── */
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-mono    { font-family: var(--font-mono); }
+
+  .liquid-glass {
+    position: relative;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.06) 100%);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.13);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.22),
+      inset 0 -1px 0 rgba(255,255,255,0.05);
+    isolation: isolate;
+  }
+
+  .liquid-glass-strong {
+    position: relative;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.07) 100%);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border: 0.5px solid rgba(255,255,255,0.20);
+    box-shadow:
+      0 16px 48px rgba(0,0,0,0.32), 0 8px 16px rgba(0,0,0,0.20),
+      inset 0 1.5px 0 rgba(255,255,255,0.32),
+      inset 0 -1px 0 rgba(255,255,255,0.06),
+      inset 1px 0 0 rgba(255,255,255,0.14),
+      inset -1px 0 0 rgba(255,255,255,0.07);
+    isolation: isolate;
+  }
+
+  .liquid-glass-thin {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.13);
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.15),
+      inset 0 0.5px 0 rgba(255,255,255,0.20);
+  }
+
+  .liquid-hover { transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+  .liquid-hover:hover {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.06) 100%);
+    transform: translateY(-1px);
+    border-color: var(--glass-stroke-hl);
+  }
+
+  /* 帶色玻璃 — 都偏藍系為主，其他色彩稍微低調 */
+  .liquid-tint-blue   { background: linear-gradient(135deg, rgba(46,125,255,0.25), rgba(10,132,255,0.12)); border-color: rgba(46,125,255,0.35); color: var(--tech-blue-200); }
+  .liquid-tint-indigo { background: linear-gradient(135deg, rgba(94,92,230,0.25), rgba(94,92,230,0.12)); border-color: rgba(94,92,230,0.35); color: #9d9bff; }
+  .liquid-tint-cyan   { background: linear-gradient(135deg, rgba(64,200,224,0.25), rgba(64,200,224,0.12)); border-color: rgba(64,200,224,0.35); color: var(--ios-cyan); }
+  .liquid-tint-purple { background: linear-gradient(135deg, rgba(191,90,242,0.22), rgba(191,90,242,0.10)); border-color: rgba(191,90,242,0.32); color: var(--ios-purple); }
+  .liquid-tint-green  { background: linear-gradient(135deg, rgba(48,209,88,0.22),  rgba(48,209,88,0.10));  border-color: rgba(48,209,88,0.32);  color: var(--ios-green); }
+  .liquid-tint-orange { background: linear-gradient(135deg, rgba(255,159,10,0.22), rgba(255,159,10,0.10)); border-color: rgba(255,159,10,0.32); color: var(--ios-orange); }
+  .liquid-tint-red    { background: linear-gradient(135deg, rgba(255,69,58,0.22),  rgba(255,69,58,0.10));  border-color: rgba(255,69,58,0.32);  color: var(--ios-red); }
+
+  /* 文字色彩 */
+  .text-primary    { color: var(--text-primary); }
+  .text-secondary  { color: var(--text-secondary); }
+  .text-tertiary   { color: var(--text-tertiary); }
+  .text-quaternary { color: var(--text-quaternary); }
+
+  .text-tech-blue  { color: var(--tech-blue-300); }
+  .text-ios-blue   { color: var(--ios-blue); }
+  .text-ios-cyan   { color: var(--ios-cyan); }
+  .text-ios-purple { color: var(--ios-purple); }
+  .text-ios-pink   { color: var(--ios-pink); }
+  .text-ios-green  { color: var(--ios-green); }
+  .text-ios-orange { color: var(--ios-orange); }
+  .text-ios-red    { color: var(--ios-red); }
+  .text-ios-indigo { color: var(--ios-indigo); }
+
+  /* Gradient text — 藍色系為主 */
+  .text-gradient-blue {
+    background: linear-gradient(135deg, var(--tech-blue-100) 0%, var(--ios-blue) 40%, var(--ios-cyan) 80%, #a8e0ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .text-gradient-cool {
+    background: linear-gradient(135deg, var(--ios-cyan) 0%, var(--tech-blue-300) 50%, var(--ios-indigo) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* iOS 圓角 */
+  .rounded-ios-sm  { border-radius: var(--radius-sm); }
+  .rounded-ios-md  { border-radius: var(--radius-md); }
+  .rounded-ios-lg  { border-radius: var(--radius-lg); }
+  .rounded-ios-xl  { border-radius: var(--radius-xl); }
+  .rounded-ios-2xl { border-radius: var(--radius-2xl); }
+
+  /* Lensing */
+  .liquid-lensing { position: relative; }
+  .liquid-lensing::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgba(255,255,255,0.20) 0%,
+      rgba(255,255,255,0) 30%,
+      rgba(255,255,255,0) 70%,
+      rgba(255,255,255,0.10) 100%
+    );
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  /* 動畫 */
+  .animate-ios-pop       { animation: iosPop 0.6s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+  .animate-ios-slide-up  { animation: iosSlideUp 0.7s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+  .animate-ios-fade      { animation: iosFade 0.5s ease-out backwards; }
+  .animate-shimmer-glass { animation: shimmerGlass 3s ease-in-out infinite; }
+  .animate-breathe       { animation: breathe 4s ease-in-out infinite; }
+}
+
+@keyframes iosPop {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+@keyframes iosSlideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes iosFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmerGlass {
+  0%, 100% { background-position: -100% 0; }
+  50%      { background-position: 200% 0; }
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.05); opacity: 0.85; }
+}
+
+::selection { background: rgba(46, 125, 255, 0.35); color: var(--text-primary); }
+
+main, header, footer { position: relative; z-index: 2; }
+
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--tech-blue-300);
+  outline-offset: 2px;
+}
