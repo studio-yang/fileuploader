@@ -71,7 +71,7 @@ export async function uploadToGoogleDrive(
 }
 
 // ── List files in target folder + 自動設定公開權限 ────────────────────────────
-export async function listGoogleDriveFiles(): Promise
+export async function listGoogleDriveFiles(): Promise<
   { id: string; name: string; size: string; modifiedTime: string; downloadUrl: string }[]
 > {
   const drive    = getDriveClient();
