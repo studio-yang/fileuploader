@@ -16,6 +16,12 @@
 | Next.js adapter | 自動偵測 | `@netlify/plugin-nextjs` | 首次部署未產生 functions，因此加上未指定版本的 plugin 設定來強制啟用 adapter。 |
 | 安全標頭 | 僅存在於 `vercel.json` | `[[headers]] for = "/*"` | 將網站層級安全標頭轉換為 Netlify 格式。 |
 
+## `next.config.js`
+
+| 項目 | Before | After | 差異說明 |
+|---|---|---|---|
+| Next.js response headers | 無全站 headers 設定 | `headers()` 回傳全站安全標頭 | 確保 Netlify Next.js server handler 的動態回應也帶上安全標頭。 |
+
 ## 新增文件
 
 | 項目 | Before | After | 差異說明 |

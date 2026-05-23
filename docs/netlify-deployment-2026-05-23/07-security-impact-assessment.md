@@ -35,7 +35,7 @@
 - `.netlify` 加入 `.gitignore`。
 - 真實環境變數僅放在 Netlify 後台，不寫入 repo。
 - 保留大型檔案瀏覽器直傳流程，避免 Netlify Function payload 限制。
-- 新增安全標頭。
+- 新增 Netlify 與 Next.js 全站安全標頭。
 
 ## 殘餘風險
 

@@ -17,7 +17,7 @@
 | TC-004 | Netlify 首次部署 | 由 Netlify 匯入 GitHub repo | Deploy 成功且啟用 Next.js adapter | 待 Netlify 環境執行 | 待測 |
 | TC-005 | Google Drive 檔案列表 | 呼叫 `/api/files?provider=gdrive` | 回傳檔案列表或空陣列 | 待 Netlify 環境執行 | 待測 |
 | TC-006 | GitHub 小檔上傳 | 上傳小於 4.5 MB 檔案 | Release asset 產生並回傳下載連結 | 待 Netlify 環境執行 | 待測 |
-| TC-007 | 安全標頭 | 檢查 Netlify response headers | 回傳本次設定的安全標頭 | 待 Netlify 環境執行 | 待測 |
+| TC-007 | 安全標頭 | 檢查 Netlify response headers | 回傳本次設定的安全標頭 | 已確認需透過 `next.config.js` 套用到 Next.js server handler，待重新部署後複測 | 待測 |
 
 ## 資安測試項目
 
