@@ -7,7 +7,7 @@
 
 ## 🎯 一句話總覽
 
-彰化商業銀行**單人使用**的檔案傳輸平台（FileUploader），Next.js + Vercel，已實作 Email OTP 登入，**正在做 Email 白名單管理（設計已定，未實作）**。
+彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單 CRUD 管理（KV 後端）+ 管理員入口 + 登出。**目前無進行中需求**。
 
 ---
 
@@ -88,14 +88,21 @@ fileuploader/
 │   │       │   ├── verify-otp/route.ts    🆕 驗 OTP + 簽 session
 │   │       │   └── logout/route.ts        🆕 清 cookie
 │   │       └── upload/                既有（gdrive/github/gcs）
-│   ├── middleware.ts                  🆕 守門（除 /login 與 /api/auth/* 外都需登入）
+│   ├── middleware.ts                  🆕 守門（含 /admin 與 /api/admin/* 的 admin gate）
 │   ├── lib/
-│   │   ├── auth.ts                    🆕 JWT + OTP hash + 產碼 helper
+│   │   ├── auth.ts                    🆕 JWT (session 含 email) + OTP hash + isAdminEmail/isValidEmail
+│   │   ├── whitelist.ts               🆕 Upstash Redis CRUD (sorted set，含 admin 置頂邏輯)
 │   │   ├── gdriveResumable.ts         既有
 │   │   ├── utils.ts                   既有
 │   │   ├── types.ts                   既有
 │   │   └── providers/                 既有
 │   └── components/upload/             既有（已修 ProviderSelector 文字色）
+
+新增的 admin 相關路由：
+│   ├── app/admin/page.tsx             🆕 白名單管理 UI（卡片列表 + 確認 modal）
+│   └── app/api/
+│       ├── admin/whitelist/route.ts   🆕 GET/POST/DELETE，requireAdmin gate
+│       └── auth/me/route.ts           🆕 回傳當前 session { email, isAdmin }
 ├── .env.local                         本機環境變數（git-ignored）
 └── package.json
 ```
@@ -111,41 +118,24 @@ fileuploader/
 | `98e9ec3` | Footer 文案改為「FileUploader Designed By CHB IT Department 176752 © 2026 · Next.js + Vercel」|
 | `705071d` | **Magic-link OTP 登入系統** — `/login` 頁、3 個 auth API、middleware 守門、JWT cookie 8h、Resend 寄信、無狀態 OTP (challenge cookie 5 分鐘 TTL) |
 | `ac9ee72` | OTP 輸入到第 6 位自動驗證；錯誤自動清空輸入框 |
+| `477b02a` | Add CLAUDE.md handover doc for AI session continuity |
+| `46c80bc` | **Email 白名單 + 管理介面** — `/admin` 卡片列表、Upstash Redis (Vercel KV) 儲存、CRUD API、`/api/auth/me`、login 改要求 email、middleware admin gate、主站 header 加白名單入口 + 登出按鈕 |
 
 ---
 
 ## 🚧 待辦（目前進度）
 
-### 🔴 進行中：Email 白名單管理
+### ✅ 無進行中需求
 
-**規格已確認**（使用者選定）：
-- 設計 **A：卡片列表**（沿用 Liquid Glass 風格）
-- 路徑 `/admin`
-- 操作：新增 + 刪除（**無編輯**，要改＝刪除後重加）
-- 系統管理員（`OTP_RECIPIENT`）**自動納入**白名單、**不可刪除**、有徽章標示
-- 上限 100 筆
-- 排序：管理員置頂，其他依加入時間（新→舊）
-- 刪除前彈確認框
-- 主站 Header 加「⚙ 白名單」入口（**僅管理員看得到**）
+上一個任務「白名單管理」已於 `46c80bc` 完成並推送。等使用者下新需求。
 
-**KV 狀態**：✅ 使用者已建好 Vercel KV（Upstash Redis 30 MB 免費版，Region: Tokyo，HA: None），已連結到 `fileuploader` 專案，三個環境都打勾。Custom Prefix 留空。
-
-**接下來要做的檔案/異動**：
-1. 新 `src/lib/whitelist.ts` — KV 讀寫 helper（list/add/remove/has）
-2. 新 `src/app/api/admin/whitelist/route.ts` — GET/POST/DELETE
-3. 新 `src/app/admin/page.tsx` — UI（卡片列表）
-4. 改 `src/lib/auth.ts` — session 加 email 欄位、加 `isAdmin()` helper
-5. 改 `src/app/api/auth/request-otp/route.ts` — 收 `email` 參數、查白名單、寄到該 email
-6. 改 `src/app/api/auth/verify-otp/route.ts` — 綁定 email 比對
-7. 改 `src/middleware.ts` — 保護 `/admin`，只允許管理員
-8. 改 `src/app/login/page.tsx` — 加 email 輸入欄
-9. 改 `src/app/page.tsx` — 加「⚙ 白名單」入口（僅管理員）
-
-**預估**：~8,500 tokens（上限 ~10,500）
-
-**未確認事項**（動工前再問使用者）：
-- KV 環境變數是否要使用者貼，還是用 `vercel env pull`？
-- 是否需要「最後登入時間」「登入次數」紀錄？（目前規格沒有，但白名單已存儲，加上很容易）
+### 🟡 已知但暫不處理（等使用者要求才動）
+- **Rate limit**（防 OTP 寄信被濫用）— 目前任何已登入者或前端可不停按按鈕
+- **稽核 Log**（每次登入/上傳/下載寫入 KV 或 file）
+- **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖該 email/IP）
+- **白名單擴充欄位**（最後登入時間、登入次數、備註欄）
+- **Resend 寄件人改自有網域**（目前 `onboarding@resend.dev`）
+- **下載端 OTP 驗證**（目前 Google Drive 連結仍然「知連結者皆可下載」— 站台本身已關起來，但 GD URL 仍公開）
 
 ### 🟡 已知但暫不處理
 - Rate limit（防 OTP 寄信被濫用）
@@ -269,11 +259,12 @@ npm run build    # 驗證
 - 中介層：除 `/login` 與 `/api/auth/*` 外**全擋**
 - 未登入呼 API：回 **401 JSON**（非 302）
 
-### 改成「使用者輸入 email」後（待實作）
-- 登入頁加 email 輸入欄
-- request-otp 收 `{ email }`，先查白名單，命中才寄
-- challenge cookie 加入 `email`，verify-otp 比對 email 一致
-- session 改帶 `email`（取代 `u: 'admin'`），用於 admin 權限判斷
+### 「使用者輸入 email」改造（✅ 已完成於 `46c80bc`）
+- ✅ 登入頁加 email 輸入欄（Step 1 輸 email，Step 2 輸 OTP）
+- ✅ request-otp 收 `{ email }`，先查白名單，命中才寄到該 email
+- ✅ challenge cookie 加入 `email`，verify-otp 比對 email 一致
+- ✅ session 帶 `{ email }`（取代 `u: 'admin'`），用於 admin 權限判斷
+- ✅ 管理員身份判定：`isAdminEmail(email)` = `email.toLowerCase() === OTP_RECIPIENT.toLowerCase()`
 
 ---
 
@@ -323,9 +314,9 @@ npm run build    # 驗證
 
 ## 📞 接手時建議的第一句話
 
-> 「我已讀完 CLAUDE.md，目前進度是 [Email 白名單管理 — 設計已選 A 卡片列表、KV 已建好、待寫程式]。確認要繼續這個方向嗎？還是有新需求？」
+> 「我已讀完 CLAUDE.md，目前無進行中需求。最後一次完成的是 Email 白名單管理（commit `46c80bc`）。請問有什麼新需求？」
 
 ---
 
-*最後更新：2026-05-24*
+*最後更新：2026-05-24（白名單功能完成後）*
 *更新者：Claude (Sonnet 4.5)*
