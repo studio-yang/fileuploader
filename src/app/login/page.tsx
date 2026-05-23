@@ -22,17 +22,21 @@ export default function LoginPage() {
     } finally { setLoading(false); }
   }
 
-  async function verifyOtp() {
-    if (!/^\d{6}$/.test(otp)) { setError('請輸入 6 位數字'); return; }
+  async function verifyOtp(code: string) {
+    if (!/^\d{6}$/.test(code)) { setError('請輸入 6 位數字'); return; }
     setLoading(true); setError('');
     try {
       const r = await fetch('/api/auth/verify-otp', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ otp }),
+        body:    JSON.stringify({ otp: code }),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) { setError(j.error || '驗證失敗'); return; }
+      if (!r.ok) {
+        setError(j.error || '驗證失敗');
+        setOtp('');
+        return;
+      }
       router.replace('/');
       router.refresh();
     } finally { setLoading(false); }
@@ -81,28 +85,25 @@ export default function LoginPage() {
               inputMode="numeric"
               maxLength={6}
               value={otp}
-              onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); setError(''); }}
+              disabled={loading}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setOtp(v);
+                setError('');
+                if (v.length === 6 && !loading) verifyOtp(v);
+              }}
               placeholder="------"
               autoFocus
-              className="w-full liquid-glass-thin rounded-ios-md py-3.5 px-4 text-center text-[26px] font-mono tracking-[0.5em] text-primary outline-none placeholder:text-quaternary"
+              className="w-full liquid-glass-thin rounded-ios-md py-3.5 px-4 text-center text-[26px] font-mono tracking-[0.5em] text-primary outline-none placeholder:text-quaternary disabled:opacity-60"
             />
-            <button
-              onClick={verifyOtp}
-              disabled={loading || otp.length !== 6}
-              className="w-full py-3.5 rounded-ios-lg font-display font-semibold text-[15px] text-white transition-all"
-              style={{
-                background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue), var(--ios-cyan))',
-                boxShadow: '0 8px 24px rgba(10,132,255,0.40), inset 0 1px 0 rgba(255,255,255,0.30)',
-                opacity: (loading || otp.length !== 6) ? 0.45 : 1,
-                cursor: (loading || otp.length !== 6) ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading ? '驗證中…' : '確認登入'}
-            </button>
+            <p className="text-center text-[12px] font-display text-quaternary">
+              {loading ? '驗證中…' : '輸入完 6 位數即自動驗證'}
+            </p>
             <button
               type="button"
               onClick={() => { setStep('request'); setOtp(''); setError(''); setInfo(''); }}
-              className="w-full text-tertiary text-[12px] font-display hover:text-secondary transition-colors py-1"
+              disabled={loading}
+              className="w-full text-tertiary text-[12px] font-display hover:text-secondary transition-colors py-1 disabled:opacity-50"
             >
               重新寄送驗證碼
             </button>
