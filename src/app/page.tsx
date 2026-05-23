@@ -298,7 +298,7 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer className="max-w-[1440px] mx-auto w-full px-3 sm:px-6 lg:px-10 pb-4 lg:pb-6">
         <div className="liquid-glass rounded-2xl sm:rounded-full py-3 px-4 sm:px-6 flex items-center justify-between flex-wrap gap-2">
-          <p className="text-[11px] text-tertiary font-display">FileFlow © 2026 · Next.js + Vercel</p>
+          <p className="text-[11px] text-tertiary font-display">FileUploader Designed By CHB IT Department 176752 © 2026 · Next.js + Vercel</p>
           <div className="flex items-center gap-4 text-[11px] font-display text-tertiary">
             <Indicator color="var(--ios-green)"     label="HTTPS" />
             <Indicator color="var(--tech-blue-300)" label="加密傳輸" />
