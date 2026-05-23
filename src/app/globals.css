@@ -79,17 +79,17 @@ html, body {
   overflow-x: hidden;
 }
 
-/* ─── 深色科技藍背景 ─────────────────────────────────────────────────────── */
+/* ─── 中度科技藍背景（softened：Apple Sequoia / Linear 風格） ───────────── */
 body {
   background:
-    /* Apple visionOS 風格：深藍灰底，帶柔和彩色光暈 */
-    radial-gradient(ellipse 65% 50% at 12% 8%,   rgba(46, 125, 255, 0.30), transparent 60%),
-    radial-gradient(ellipse 55% 55% at 88% 18%,  rgba(94, 92, 230, 0.22),  transparent 60%),
-    radial-gradient(ellipse 75% 50% at 50% 48%,  rgba(10, 132, 255, 0.16), transparent 65%),
-    radial-gradient(ellipse 60% 55% at 18% 88%,  rgba(64, 200, 224, 0.15), transparent 60%),
-    radial-gradient(ellipse 55% 45% at 88% 88%,  rgba(191, 90, 242, 0.14), transparent 60%),
-    /* 深藍灰底色 — 不那麼黑，像 visionOS 的空間感 */
-    linear-gradient(135deg, #141b2d 0%, #1a2340 35%, #1e2a4a 75%, #141b2d 100%);
+    /* 柔和光暈 — 透明度略調，使整體更明亮通透 */
+    radial-gradient(ellipse 65% 50% at 12% 8%,   rgba(46, 125, 255, 0.22), transparent 60%),
+    radial-gradient(ellipse 55% 55% at 88% 18%,  rgba(94, 92, 230, 0.18),  transparent 60%),
+    radial-gradient(ellipse 75% 50% at 50% 48%,  rgba(10, 132, 255, 0.12), transparent 65%),
+    radial-gradient(ellipse 60% 55% at 18% 88%,  rgba(64, 200, 224, 0.14), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 88% 88%,  rgba(191, 90, 242, 0.12), transparent 60%),
+    /* 中度藍灰底 — 比原本明亮一階，仍維持深色主題的對比 */
+    linear-gradient(135deg, #2a3552 0%, #354168 35%, #3d4a78 75%, #2a3552 100%);
   background-attachment: fixed;
   min-height: 100vh;
   position: relative;

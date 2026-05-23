@@ -124,8 +124,8 @@ export default function Home() {
       )}
 
       {/* ── Header ── */}
-      <header className="liquid-glass-strong sticky top-0 z-40 px-6 lg:px-10">
-        <div className="max-w-[1440px] mx-auto flex items-center gap-4 h-16">
+      <header className="liquid-glass-strong sticky top-0 z-40 px-3 sm:px-6 lg:px-10">
+        <div className="max-w-[1440px] mx-auto flex items-center gap-2 sm:gap-4 h-16">
 
           {/* Logo (點擊回首頁) */}
           <a
@@ -142,11 +142,14 @@ export default function Home() {
                 <path d="M8 13V3"/><path d="M3 8L8 3L13 8"/>
               </svg>
             </div>
-            <span className="font-display font-bold text-[18px] tracking-tight text-primary">CHB 外部檔案傳輸平台</span>
+            <span className="font-display font-bold text-[14px] sm:text-[18px] tracking-tight text-primary truncate">
+              <span className="sm:hidden">CHB 檔案傳輸</span>
+              <span className="hidden sm:inline">CHB 外部檔案傳輸平台</span>
+            </span>
           </a>
 
           {/* Nav tabs */}
-          <div className="liquid-glass-thin rounded-full p-1 flex gap-1 ml-6">
+          <div className="liquid-glass-thin rounded-full p-1 flex gap-1 ml-1 sm:ml-6 flex-shrink-0">
             {([
               { id: 'upload'   as Tab, label: '上傳檔案',
                 icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10V3"/><path d="M3 6L7 3L11 6"/><path d="M2 11H12"/></svg> },
@@ -154,10 +157,10 @@ export default function Home() {
                 icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3V10"/><path d="M3 7L7 10L11 7"/><path d="M2 11H12"/></svg> },
             ]).map((t) => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-display font-semibold transition-all duration-300 ${
+                className={`flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-full text-[13px] font-display font-semibold transition-all duration-300 ${
                   activeTab === t.id ? 'liquid-tint-blue text-tech-blue' : 'text-tertiary hover:text-secondary'
                 }`}>
-                {t.icon}{t.label}
+                {t.icon}<span className="hidden sm:inline">{t.label}</span>
               </button>
             ))}
           </div>
@@ -173,7 +176,7 @@ export default function Home() {
           </div>
 
           {/* HTTPS */}
-          <div className="liquid-glass-thin liquid-tint-green rounded-full px-3 py-1.5 flex items-center gap-1.5 ml-2">
+          <div className="liquid-glass-thin liquid-tint-green rounded-full px-2 sm:px-3 py-1.5 flex items-center gap-1.5 ml-1 sm:ml-2 flex-shrink-0">
             <span className="w-1.5 h-1.5 rounded-full animate-breathe" style={{ background: 'var(--ios-green)' }} />
             <span className="text-[11px] font-display font-semibold">HTTPS</span>
           </div>
@@ -181,11 +184,11 @@ export default function Home() {
       </header>
 
       {/* ── Body ── */}
-      <div className="flex-1 max-w-[1440px] mx-auto w-full px-6 lg:px-10 py-6">
-        <div className="flex gap-6 items-start">
+      <div className="flex-1 max-w-[1440px] mx-auto w-full px-3 sm:px-6 lg:px-10 py-4 lg:py-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start">
 
-          {/* ── Left Sidebar (固定 280px) ── */}
-          <aside className="w-[280px] flex-shrink-0 sticky top-24 space-y-4">
+          {/* ── Left Sidebar (lg 以上固定 280px，行動版滿版) ── */}
+          <aside className="w-full lg:w-[280px] flex-shrink-0 lg:sticky lg:top-24 space-y-4">
 
             {/* Provider selector card */}
             <div className="liquid-glass-strong liquid-lensing rounded-ios-xl p-5">
@@ -293,8 +296,8 @@ export default function Home() {
       </div>
 
       {/* ── Footer ── */}
-      <footer className="max-w-[1440px] mx-auto w-full px-6 lg:px-10 pb-6">
-        <div className="liquid-glass rounded-full py-3 px-6 flex items-center justify-between flex-wrap gap-2">
+      <footer className="max-w-[1440px] mx-auto w-full px-3 sm:px-6 lg:px-10 pb-4 lg:pb-6">
+        <div className="liquid-glass rounded-2xl sm:rounded-full py-3 px-4 sm:px-6 flex items-center justify-between flex-wrap gap-2">
           <p className="text-[11px] text-tertiary font-display">FileFlow © 2026 · Next.js + Vercel</p>
           <div className="flex items-center gap-4 text-[11px] font-display text-tertiary">
             <Indicator color="var(--ios-green)"     label="HTTPS" />
