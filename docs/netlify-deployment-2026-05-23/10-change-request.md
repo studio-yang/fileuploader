@@ -13,10 +13,11 @@
 2. 登入 Netlify，選擇從 GitHub 匯入 `studio-yang/fileuploader`。
 3. 設定 build command 為 `npm run build`。
 4. Publish directory 使用 `.next`，讓 Netlify Next.js adapter 處理 build output。
-5. 設定 production 環境變數。
-6. 觸發首次 deploy。
-7. 檢查 deploy log，確認 Next.js adapter 正常啟用。
-8. 開啟 Netlify 網址，執行 IT 測試與 UAT。
+5. 確認 Netlify build 有載入 `@netlify/plugin-nextjs`。
+6. 設定 production 環境變數。
+7. 觸發首次 deploy。
+8. 檢查 deploy log，確認 Next.js adapter 正常啟用。
+9. 開啟 Netlify 網址，執行 IT 測試與 UAT。
 
 ## 影響範圍與停機時間
 

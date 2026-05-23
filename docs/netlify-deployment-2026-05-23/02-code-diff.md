@@ -13,6 +13,7 @@
 | Netlify 建置設定 | 無 | `[build] command = "npm run build"` | 讓 Netlify 使用與現有 Next.js 專案一致的 build script。 |
 | Netlify 發布目錄 | 無 | `publish = ".next"` | 依 Netlify Next.js 建議設定發布 Next.js build output，避免部署成空站或 404。 |
 | Node.js 版本 | 無 | `NODE_VERSION = "20"` | 固定建置環境，降低平台預設版本變動風險。 |
+| Next.js adapter | 自動偵測 | `@netlify/plugin-nextjs` | 首次部署未產生 functions，因此加上未指定版本的 plugin 設定來強制啟用 adapter。 |
 | 安全標頭 | 僅存在於 `vercel.json` | `[[headers]] for = "/*"` | 將網站層級安全標頭轉換為 Netlify 格式。 |
 
 ## 新增文件

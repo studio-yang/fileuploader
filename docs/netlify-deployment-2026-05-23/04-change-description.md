@@ -11,6 +11,7 @@
 - 建置指令：`npm run build`
 - 發布目錄：`.next`
 - Node.js 版本：20
+- Next.js adapter：`@netlify/plugin-nextjs`，未指定版本，避免 pin 到固定版本
 - 網站安全標頭：`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy`、`Permissions-Policy`、`Strict-Transport-Security`
 
 ## 影響範圍
