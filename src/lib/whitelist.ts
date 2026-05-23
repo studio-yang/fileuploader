@@ -1,37 +1,20 @@
-import { Redis } from '@upstash/redis';
+import IORedis from 'ioredis';
 import { normalizeEmail, isAdminEmail } from './auth';
 
 const KEY = 'whitelist:emails';
 const MAX = 100;
 
-let _redis: Redis | null = null;
-function redis(): Redis {
+let _redis: IORedis | null = null;
+function redis(): IORedis {
   if (_redis) return _redis;
-
-  // 優先：明確的 REST API 環境變數（Vercel KV / Upstash 直連）
-  const url   = process.env.KV_REST_API_URL   || process.env.UPSTASH_REDIS_REST_URL   || '';
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
-  if (url && token) {
-    _redis = new Redis({ url, token });
-    return _redis;
-  }
-
-  // 備援：從 REDIS_URL（redis protocol）解析 REST API 連線
-  const redisUrl = process.env.REDIS_URL || '';
-  if (redisUrl) {
-    try {
-      const parsed = new URL(redisUrl);
-      _redis = new Redis({
-        url:   `https://${parsed.hostname}`,
-        token: parsed.password,
-      });
-      return _redis;
-    } catch {
-      throw new Error('REDIS_URL 格式錯誤');
-    }
-  }
-
-  throw new Error('KV 未設定');
+  const url = process.env.REDIS_URL || process.env.KV_URL || '';
+  if (!url) throw new Error('Redis 未設定');
+  _redis = new IORedis(url, {
+    maxRetriesPerRequest: 3,
+    enableReadyCheck:     false,
+    lazyConnect:          false,
+  });
+  return _redis;
 }
 
 export interface WhitelistEntry {
@@ -41,10 +24,10 @@ export interface WhitelistEntry {
 }
 
 export async function listWhitelist(): Promise<WhitelistEntry[]> {
-  const raw = (await redis().zrange(KEY, 0, -1, { rev: true, withScores: true })) as (string | number)[];
+  const raw = await redis().zrevrange(KEY, 0, -1, 'WITHSCORES');
   const out: WhitelistEntry[] = [];
   for (let i = 0; i < raw.length; i += 2) {
-    const email = String(raw[i]);
+    const email = raw[i];
     out.push({ email, addedAt: Number(raw[i + 1]), isAdmin: isAdminEmail(email) });
   }
   // 確保系統管理員置頂（即使 KV 內沒紀錄）
@@ -52,7 +35,6 @@ export async function listWhitelist(): Promise<WhitelistEntry[]> {
   if (adminEmail && !out.some((e) => e.email === adminEmail)) {
     out.unshift({ email: adminEmail, addedAt: 0, isAdmin: true });
   } else {
-    // 把管理員移到第一筆
     const idx = out.findIndex((e) => e.isAdmin);
     if (idx > 0) {
       const [adminEntry] = out.splice(idx, 1);
@@ -69,7 +51,7 @@ export async function addToWhitelist(emailRaw: string): Promise<void> {
   if (exists !== null) throw new Error('此 Email 已在白名單中');
   const count = await redis().zcard(KEY);
   if (count >= MAX) throw new Error(`白名單已達上限（${MAX} 筆）`);
-  await redis().zadd(KEY, { score: Date.now(), member: email });
+  await redis().zadd(KEY, Date.now(), email);
 }
 
 export async function removeFromWhitelist(emailRaw: string): Promise<void> {
