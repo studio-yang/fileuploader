@@ -79,17 +79,17 @@ html, body {
   overflow-x: hidden;
 }
 
-/* ─── 中度科技藍背景（softened：Apple Sequoia / Linear 風格） ───────────── */
+/* ─── 中性 Slate 背景（去飽和：Linear / Notion / Vercel 風格） ──────────── */
 body {
   background:
-    /* 柔和光暈 — 透明度略調，使整體更明亮通透 */
-    radial-gradient(ellipse 65% 50% at 12% 8%,   rgba(46, 125, 255, 0.22), transparent 60%),
-    radial-gradient(ellipse 55% 55% at 88% 18%,  rgba(94, 92, 230, 0.18),  transparent 60%),
-    radial-gradient(ellipse 75% 50% at 50% 48%,  rgba(10, 132, 255, 0.12), transparent 65%),
-    radial-gradient(ellipse 60% 55% at 18% 88%,  rgba(64, 200, 224, 0.14), transparent 60%),
-    radial-gradient(ellipse 55% 45% at 88% 88%,  rgba(191, 90, 242, 0.12), transparent 60%),
-    /* 中度藍灰底 — 比原本明亮一階，仍維持深色主題的對比 */
-    linear-gradient(135deg, #2a3552 0%, #354168 35%, #3d4a78 75%, #2a3552 100%);
+    /* 光暈 — 大幅降低 opacity，避免藍主宰整體 */
+    radial-gradient(ellipse 65% 50% at 12% 8%,   rgba(46, 125, 255, 0.10), transparent 60%),
+    radial-gradient(ellipse 55% 55% at 88% 18%,  rgba(94, 92, 230, 0.08),  transparent 60%),
+    radial-gradient(ellipse 75% 50% at 50% 48%,  rgba(10, 132, 255, 0.05), transparent 65%),
+    radial-gradient(ellipse 60% 55% at 18% 88%,  rgba(64, 200, 224, 0.06), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 88% 88%,  rgba(191, 90, 242, 0.05), transparent 60%),
+    /* 中性深 slate — 帶極微藍灰，不過度藍 */
+    linear-gradient(135deg, #232733 0%, #2a2f3f 35%, #313749 75%, #232733 100%);
   background-attachment: fixed;
   min-height: 100vh;
   position: relative;
@@ -152,8 +152,8 @@ body::after {
     position: relative;
     background:
       linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.06) 100%);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(125%);
+    -webkit-backdrop-filter: blur(40px) saturate(125%);
     border: 0.5px solid rgba(255,255,255,0.13);
     box-shadow:
       0 8px 32px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.18),
@@ -166,8 +166,8 @@ body::after {
     position: relative;
     background:
       linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.07) 100%);
-    backdrop-filter: blur(50px) saturate(200%);
-    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    backdrop-filter: blur(50px) saturate(135%);
+    -webkit-backdrop-filter: blur(50px) saturate(135%);
     border: 0.5px solid rgba(255,255,255,0.20);
     box-shadow:
       0 16px 48px rgba(0,0,0,0.32), 0 8px 16px rgba(0,0,0,0.20),
@@ -181,8 +181,8 @@ body::after {
   .liquid-glass-thin {
     background:
       linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 100%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(125%);
+    -webkit-backdrop-filter: blur(20px) saturate(125%);
     border: 0.5px solid rgba(255,255,255,0.13);
     box-shadow:
       0 2px 8px rgba(0,0,0,0.15),

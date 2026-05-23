@@ -158,7 +158,7 @@ export default function Home() {
             ]).map((t) => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
                 className={`flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-full text-[13px] font-display font-semibold transition-all duration-300 ${
-                  activeTab === t.id ? 'liquid-tint-blue text-tech-blue' : 'text-tertiary hover:text-secondary'
+                  activeTab === t.id ? 'liquid-tint-blue text-primary' : 'text-tertiary hover:text-secondary'
                 }`}>
                 {t.icon}<span className="hidden sm:inline">{t.label}</span>
               </button>

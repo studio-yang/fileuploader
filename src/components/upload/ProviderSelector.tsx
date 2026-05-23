@@ -108,7 +108,7 @@ export default function ProviderSelector({ selected, onChange }: Props) {
               </div>
               <div
                 className="text-[15px] font-display font-semibold mb-1.5 tracking-tight"
-                style={{ color: active ? p.iosColor : 'var(--text-primary)' }}
+                style={{ color: 'var(--text-primary)' }}
               >
                 {p.label}
               </div>
@@ -121,7 +121,7 @@ export default function ProviderSelector({ selected, onChange }: Props) {
                 <span className="text-[11px] font-display font-medium text-quaternary">容量</span>
                 <span
                   className="text-[12px] font-mono font-medium"
-                  style={{ color: active ? p.iosColor : 'var(--text-tertiary)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {p.limit}
                 </span>
