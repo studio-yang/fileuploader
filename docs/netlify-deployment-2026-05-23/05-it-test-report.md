@@ -12,7 +12,7 @@
 | 編號 | 測試項目 | 輸入條件 | 預期結果 | 實際結果 | 是否通過 |
 |---|---|---|---|---|---|
 | TC-001 | 檢查 Git 狀態 | 執行 `git status --short` | 僅出現本次預期異動 | 僅出現 `.gitignore`、`netlify.toml`、`docs/` 異動 | 通過 |
-| TC-002 | Netlify 設定檢查 | 檢查 `netlify.toml` | 包含 build command、Node 20、安全標頭 | 已包含 `npm run build`、`NODE_VERSION = "20"` 與安全標頭 | 通過 |
+| TC-002 | Netlify 設定檢查 | 檢查 `netlify.toml` | 包含 build command、publish directory、Node 20、安全標頭 | 已包含 `npm run build`、`.next`、`NODE_VERSION = "20"` 與安全標頭 | 通過 |
 | TC-003 | Next.js 建置 | 執行 `npm run build` | 建置成功 | 建置成功；本機沙盒執行曾因 Windows `spawn EPERM` 失敗，改一般權限後通過 | 通過 |
 | TC-004 | Netlify 首次部署 | 由 Netlify 匯入 GitHub repo | Deploy 成功且啟用 Next.js adapter | 待 Netlify 環境執行 | 待測 |
 | TC-005 | Google Drive 檔案列表 | 呼叫 `/api/files?provider=gdrive` | 回傳檔案列表或空陣列 | 待 Netlify 環境執行 | 待測 |

@@ -9,6 +9,7 @@
 新增 Netlify 專用設定檔，指定：
 
 - 建置指令：`npm run build`
+- 發布目錄：`.next`
 - Node.js 版本：20
 - 網站安全標頭：`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy`、`Permissions-Policy`、`Strict-Transport-Security`
 
