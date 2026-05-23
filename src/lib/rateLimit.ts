@@ -8,17 +8,31 @@ const BLOCK_KEY    = 'blocklist:ips';
 let _redis: Redis | null = null;
 function redis(): Redis {
   if (_redis) return _redis;
-  const url =
-    process.env.KV_REST_API_URL ||
-    process.env.UPSTASH_REDIS_REST_URL ||
-    '';
-  const token =
-    process.env.KV_REST_API_TOKEN ||
-    process.env.UPSTASH_REDIS_REST_TOKEN ||
-    '';
-  if (!url || !token) throw new Error('KV 未設定');
-  _redis = new Redis({ url, token });
-  return _redis;
+
+  // 優先：明確的 REST API 環境變數（Vercel KV / Upstash 直連）
+  const url   = process.env.KV_REST_API_URL   || process.env.UPSTASH_REDIS_REST_URL   || '';
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+  if (url && token) {
+    _redis = new Redis({ url, token });
+    return _redis;
+  }
+
+  // 備援：從 REDIS_URL（redis protocol）解析 REST API 連線
+  const redisUrl = process.env.REDIS_URL || '';
+  if (redisUrl) {
+    try {
+      const parsed = new URL(redisUrl);
+      _redis = new Redis({
+        url:   `https://${parsed.hostname}`,
+        token: parsed.password,
+      });
+      return _redis;
+    } catch {
+      throw new Error('REDIS_URL 格式錯誤');
+    }
+  }
+
+  throw new Error('KV 未設定');
 }
 
 export const RATE_WINDOW_SEC = WINDOW_SEC;
