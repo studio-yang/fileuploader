@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken, isAdminEmail } from '@/lib/auth';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -13,17 +13,31 @@ export async function middleware(req: NextRequest) {
   }
 
   const session = req.cookies.get('session')?.value;
-  if (session && (await verifyToken(session))) {
-    return NextResponse.next();
+  const payload = session ? await verifyToken(session) : null;
+  const email   = typeof payload?.email === 'string' ? payload.email : '';
+
+  if (!email) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: '未登入' }, { status: 401 });
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
   }
 
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.json({ error: '未登入' }, { status: 401 });
+  // Admin gate
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin/')) {
+    if (!isAdminEmail(email)) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: '權限不足' }, { status: 403 });
+      }
+      const url = req.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = '/login';
-  return NextResponse.redirect(url);
+  return NextResponse.next();
 }
 
 export const config = {

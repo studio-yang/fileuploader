@@ -1,22 +1,38 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { generateOtp, hashOtp, signChallenge } from '@/lib/auth';
+import { generateOtp, hashOtp, signChallenge, normalizeEmail, isValidEmail } from '@/lib/auth';
+import { isWhitelisted } from '@/lib/whitelist';
 
-export async function POST() {
+export async function POST(req: Request) {
   const apiKey = process.env.RESEND_API_KEY;
-  const to     = process.env.OTP_RECIPIENT;
-  if (!apiKey || !to) {
-    return NextResponse.json({ error: '伺服器未設定 RESEND_API_KEY / OTP_RECIPIENT' }, { status: 500 });
+  if (!apiKey) {
+    return NextResponse.json({ error: '伺服器未設定 RESEND_API_KEY' }, { status: 500 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const rawEmail = typeof body?.email === 'string' ? body.email : '';
+  if (!isValidEmail(rawEmail)) {
+    return NextResponse.json({ error: 'Email 格式不正確' }, { status: 400 });
+  }
+  const email = normalizeEmail(rawEmail);
+
+  try {
+    const allowed = await isWhitelisted(email);
+    if (!allowed) {
+      return NextResponse.json({ error: '此信箱未授權登入' }, { status: 403 });
+    }
+  } catch (e: any) {
+    return NextResponse.json({ error: `白名單檢查失敗：${e?.message ?? 'unknown'}` }, { status: 500 });
   }
 
   const otp       = generateOtp();
-  const challenge = await signChallenge(await hashOtp(otp));
+  const challenge = await signChallenge(await hashOtp(otp), email);
 
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
       from:    'CHB FileUploader <onboarding@resend.dev>',
-      to,
+      to:      email,
       subject: `CHB 檔案傳輸 登入驗證碼：${otp}`,
       html: `<div style="font-family:-apple-system,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f6f8fb;border-radius:16px">
   <h2 style="margin:0 0 16px;color:#1a2340">CHB 檔案傳輸登入驗證</h2>

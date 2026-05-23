@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ProviderSelector from '@/components/upload/ProviderSelector';
 import DropZone         from '@/components/upload/DropZone';
 import FileQueue        from '@/components/upload/FileQueue';
@@ -14,13 +15,26 @@ import { uploadToGoogleDriveDirect } from '@/lib/gdriveResumable';
 type Tab = 'upload' | 'download';
 
 export default function Home() {
+  const router = useRouter();
   const [provider,    setProvider]    = useState<StorageProvider>('gdrive');
   const [activeTab,   setActiveTab]   = useState<Tab>('upload');
   const [fileItems,   setFileItems]   = useState<FileItem[]>([]);
   const [uploading,   setUploading]   = useState(false);
   const [listRefresh, setListRefresh] = useState(0);
   const [toast,       setToast]       = useState<string | null>(null);
+  const [isAdmin,     setIsAdmin]     = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me').then((r) => r.json()).then((j) => {
+      setIsAdmin(!!j?.isAdmin);
+    }).catch(() => {});
+  }, []);
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.replace('/login');
+  }
 
   const update = useCallback((id: string, patch: Partial<FileItem>) => {
     setFileItems((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
@@ -174,6 +188,35 @@ export default function Home() {
             <StatPill label="進行" value={uploadingCount} color="var(--tech-blue-300)" tint="liquid-tint-blue" />
             <StatPill label="完成" value={successCount}   color="var(--ios-green)"    tint="liquid-tint-green" />
           </div>
+
+          {/* Admin link (僅管理員) */}
+          {isAdmin && (
+            <button
+              onClick={() => router.push('/admin')}
+              className="liquid-glass-thin liquid-tint-orange rounded-full px-2 sm:px-3 py-1.5 flex items-center gap-1.5 ml-1 sm:ml-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+              title="白名單管理"
+            >
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="6" r="2" />
+                <path d="M6 1v2M6 9v2M1 6h2M9 6h2M2.5 2.5l1.4 1.4M8.1 8.1l1.4 1.4M2.5 9.5l1.4-1.4M8.1 3.9l1.4-1.4" />
+              </svg>
+              <span className="text-[11px] font-display font-semibold hidden sm:inline">白名單</span>
+            </button>
+          )}
+
+          {/* 登出 */}
+          <button
+            onClick={logout}
+            className="liquid-glass-thin rounded-full px-2 sm:px-3 py-1.5 flex items-center ml-1 flex-shrink-0 text-tertiary hover:text-primary transition-colors"
+            title="登出"
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 2H2v8h3" />
+              <path d="M8 8.5L10.5 6 8 3.5" />
+              <path d="M10.5 6H5" />
+            </svg>
+            <span className="text-[11px] font-display font-semibold hidden sm:inline ml-1">登出</span>
+          </button>
 
           {/* HTTPS */}
           <div className="liquid-glass-thin liquid-tint-green rounded-full px-2 sm:px-3 py-1.5 flex items-center gap-1.5 ml-1 sm:ml-2 flex-shrink-0">

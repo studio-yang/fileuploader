@@ -4,16 +4,16 @@ const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET || 'dev-only-secret-set-AUTH_SECRET-in-env'
 );
 
-export async function signSession(): Promise<string> {
-  return new SignJWT({ u: 'admin' })
+export async function signSession(email: string): Promise<string> {
+  return new SignJWT({ email })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('8h')
     .sign(secret);
 }
 
-export async function signChallenge(otpHash: string): Promise<string> {
-  return new SignJWT({ h: otpHash })
+export async function signChallenge(otpHash: string, email: string): Promise<string> {
+  return new SignJWT({ h: otpHash, e: email })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('5m')
@@ -41,4 +41,17 @@ export function generateOtp(): string {
   const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
   return String(100000 + (arr[0] % 900000));
+}
+
+export function normalizeEmail(email: string): string {
+  return email.toLowerCase().trim();
+}
+
+export function isAdminEmail(email: string): boolean {
+  const admin = (process.env.OTP_RECIPIENT || '').toLowerCase().trim();
+  return !!admin && normalizeEmail(email) === admin;
+}
+
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
