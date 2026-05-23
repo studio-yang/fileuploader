@@ -9,26 +9,48 @@ interface Entry {
   isAdmin: boolean;
 }
 
+interface BlockEntry {
+  ip:        string;
+  blockedAt: number;
+  reason:    string;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [list, setList]       = useState<Entry[]>([]);
+  const [blocked, setBlocked] = useState<BlockEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding]   = useState(false);
   const [newEmail, setNew]    = useState('');
   const [error, setError]     = useState('');
-  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [confirmDel, setConfirmDel]         = useState<string | null>(null);
+  const [confirmUnblock, setConfirmUnblock] = useState<string | null>(null);
 
   async function load() {
     setLoading(true); setError('');
     try {
-      const r = await fetch('/api/admin/whitelist');
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) { setError(j.error || '讀取失敗'); return; }
-      setList(j.list || []);
+      const [rW, rB] = await Promise.all([
+        fetch('/api/admin/whitelist'),
+        fetch('/api/admin/blocklist'),
+      ]);
+      const jW = await rW.json().catch(() => ({}));
+      const jB = await rB.json().catch(() => ({}));
+      if (!rW.ok) setError(jW.error || '讀取白名單失敗');
+      else setList(jW.list || []);
+      if (rB.ok) setBlocked(jB.list || []);
     } finally { setLoading(false); }
   }
 
   useEffect(() => { load(); }, []);
+
+  async function unblock(ip: string) {
+    setConfirmUnblock(null);
+    setError('');
+    const r = await fetch(`/api/admin/blocklist?ip=${encodeURIComponent(ip)}`, { method: 'DELETE' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { setError(j.error || '解除失敗'); return; }
+    await load();
+  }
 
   async function addEmail() {
     if (!newEmail.trim()) return;
@@ -182,6 +204,55 @@ export default function AdminPage() {
             ))}
           </div>
         )}
+
+        {/* 分隔 */}
+        <div className="h-px my-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
+        {/* Blocklist 標題 */}
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-0.5 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, var(--ios-red), var(--ios-orange))' }} />
+            <span className="text-[11px] font-display font-semibold text-tertiary tracking-wider uppercase">已封鎖 IP</span>
+          </div>
+          <span className="text-[12px] font-mono text-tertiary">{blocked.length} 筆</span>
+        </div>
+
+        {/* Blocklist 列表 */}
+        {blocked.length === 0 ? (
+          <div className="liquid-glass liquid-lensing rounded-ios-xl p-6 text-center text-tertiary text-[13px] font-display">
+            目前無封鎖紀錄
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {blocked.map((b) => (
+              <div key={b.ip} className="liquid-glass liquid-lensing rounded-ios-xl p-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-ios-md flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--ios-red), var(--ios-orange))',
+                    boxShadow:  '0 4px 12px rgba(255,69,58,0.30)',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="8" cy="8" r="6" />
+                    <path d="M3.5 3.5l9 9" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[14px] font-mono font-medium text-primary break-all">{b.ip}</div>
+                  <div className="text-[11px] text-tertiary font-display mt-0.5">
+                    {fmtDate(b.blockedAt)} · {b.reason}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setConfirmUnblock(b.ip)}
+                  className="liquid-glass-thin liquid-tint-green rounded-ios-md px-3 py-2 text-[12px] font-display font-semibold flex-shrink-0 hover:opacity-80 transition-opacity"
+                >
+                  解除封鎖
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Confirm modal */}
@@ -213,6 +284,41 @@ export default function AdminPage() {
                 style={{ color: 'var(--ios-red)' }}
               >
                 確認刪除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unblock modal */}
+      {confirmUnblock && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setConfirmUnblock(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="liquid-glass-strong liquid-lensing rounded-ios-xl p-6 max-w-sm w-full space-y-4 animate-ios-pop"
+          >
+            <h3 className="font-display font-bold text-[17px] text-primary">確認解除封鎖？</h3>
+            <p className="text-[13px] text-secondary font-display break-all">
+              此 IP 將恢復寄送驗證碼權限：<br />
+              <span className="font-mono text-primary">{confirmUnblock}</span>
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setConfirmUnblock(null)}
+                className="flex-1 liquid-glass-thin rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-secondary"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => unblock(confirmUnblock)}
+                className="flex-1 liquid-tint-green rounded-ios-md py-2.5 text-[13px] font-display font-semibold"
+                style={{ color: 'var(--ios-green)' }}
+              >
+                確認解除
               </button>
             </div>
           </div>

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { generateOtp, hashOtp, signChallenge, normalizeEmail, isValidEmail } from '@/lib/auth';
+import { generateOtp, hashOtp, signChallenge, normalizeEmail, isValidEmail, isAdminEmail } from '@/lib/auth';
 import { isWhitelisted } from '@/lib/whitelist';
+import { getClientIp, isBlocked, incrRate, blockIp, RATE_MAX } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -15,7 +16,35 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Email 格式不正確' }, { status: 400 });
   }
   const email = normalizeEmail(rawEmail);
+  const isAdminReq = isAdminEmail(email);
+  const ip = getClientIp(req.headers);
 
+  // 1. IP 封鎖檢查（管理員 email 豁免，可用自己 email 救援）
+  if (!isAdminReq) {
+    try {
+      if (await isBlocked(ip)) {
+        return NextResponse.json({ error: '此來源 IP 已被封鎖，請聯絡管理員' }, { status: 429 });
+      }
+    } catch (e: any) {
+      return NextResponse.json({ error: `KV 連線失敗：${e?.message ?? 'unknown'}` }, { status: 500 });
+    }
+  }
+
+  // 2. Rate Limit（一律計數，管理員不會被加入封鎖名單）
+  try {
+    const count = await incrRate(ip);
+    if (count > RATE_MAX) {
+      if (!isAdminReq) {
+        await blockIp(ip);
+        return NextResponse.json({ error: '請求過於頻繁，您的 IP 已被封鎖' }, { status: 429 });
+      }
+      return NextResponse.json({ error: '請求過於頻繁，請稍後再試' }, { status: 429 });
+    }
+  } catch (e: any) {
+    return NextResponse.json({ error: `KV 連線失敗：${e?.message ?? 'unknown'}` }, { status: 500 });
+  }
+
+  // 3. 白名單檢查
   try {
     const allowed = await isWhitelisted(email);
     if (!allowed) {

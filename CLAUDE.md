@@ -120,6 +120,7 @@ fileuploader/
 | `ac9ee72` | OTP 輸入到第 6 位自動驗證；錯誤自動清空輸入框 |
 | `477b02a` | Add CLAUDE.md handover doc for AI session continuity |
 | `46c80bc` | **Email 白名單 + 管理介面** — `/admin` 卡片列表、Upstash Redis (Vercel KV) 儲存、CRUD API、`/api/auth/me`、login 改要求 email、middleware admin gate、主站 header 加白名單入口 + 登出按鈕 |
+| 🆕 | **Rate Limit + IP 封鎖** — `src/lib/rateLimit.ts`、request-otp 加 IP 偵測/計數/封鎖、新 `/api/admin/blocklist` GET/DELETE、admin 頁加封鎖 IP 區塊+解除 modal；規格：3 分鐘 5 次封鎖、永久封鎖、管理員 email 豁免封鎖名單但仍受 rate-limit 節流 |
 
 ---
 
@@ -130,7 +131,6 @@ fileuploader/
 上一個任務「白名單管理」已於 `46c80bc` 完成並推送。等使用者下新需求。
 
 ### 🟡 已知但暫不處理（等使用者要求才動）
-- **Rate limit**（防 OTP 寄信被濫用）— 目前任何已登入者或前端可不停按按鈕
 - **稽核 Log**（每次登入/上傳/下載寫入 KV 或 file）
 - **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖該 email/IP）
 - **白名單擴充欄位**（最後登入時間、登入次數、備註欄）
