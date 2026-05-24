@@ -1,20 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
   const router = useRouter();
-  const [step, setStep]       = useState<'request' | 'verify'>('request');
-  const [email, setEmail]     = useState('');
-  const [otp, setOtp]         = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [info, setInfo]       = useState('');
+  const [step, setStep]                 = useState<'request' | 'verify'>('request');
+  const [email, setEmail]               = useState('');
+  const [otp, setOtp]                   = useState('');
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [info, setInfo]                 = useState('');
+  const [checking, setChecking]         = useState(true);  // 初始裝置辨識
+  const [showRemember, setShowRemember] = useState(false); // 「記住裝置」Modal
 
   const emailValid = EMAIL_RE.test(email.trim());
+
+  // 頁面載入時：偵測已記住的裝置，若有就自動寄出驗證碼
+  useEffect(() => {
+    fetch('/api/auth/check-device')
+      .then((r) => r.json())
+      .then((j: { found: boolean; email?: string }) => {
+        if (j.found && j.email) {
+          setEmail(j.email);
+          setInfo('驗證碼已寄出，請查收信件');
+          setStep('verify');
+        }
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }, []);
 
   async function requestOtp() {
     if (!emailValid) { setError('Email 格式不正確'); return; }
@@ -28,7 +45,7 @@ export default function LoginPage() {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { setError(j.error || '寄送失敗，請稍後再試'); return; }
       setStep('verify');
-      setInfo('驗證碼已寄出，請查看信箱');
+      setInfo('驗證碼已寄出，請查收信件');
     } finally { setLoading(false); }
   }
 
@@ -47,20 +64,47 @@ export default function LoginPage() {
         setOtp('');
         return;
       }
-      router.replace('/');
-      router.refresh();
+      // 驗證成功 → 跳出「記住這台裝置？」
+      setShowRemember(true);
     } finally { setLoading(false); }
+  }
+
+  async function doRemember() {
+    await fetch('/api/auth/remember-device', { method: 'POST' }).catch(() => {});
+    router.replace('/');
+    router.refresh();
+  }
+
+  function skipRemember() {
+    router.replace('/');
+    router.refresh();
+  }
+
+  // 初始裝置辨識中：顯示等待畫面
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div
+          className="liquid-glass-strong liquid-lensing rounded-ios-xl p-8 w-full max-w-md flex items-center justify-center"
+          style={{ minHeight: 220 }}
+        >
+          <p className="text-tertiary text-[13px] font-display animate-pulse">辨識裝置中…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="liquid-glass-strong liquid-lensing rounded-ios-xl p-8 w-full max-w-md space-y-6">
+
+        {/* Header */}
         <div className="text-center">
           <div
             className="w-14 h-14 mx-auto rounded-ios-md flex items-center justify-center mb-4"
             style={{
               background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue), var(--ios-cyan))',
-              boxShadow: '0 8px 24px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.30)',
+              boxShadow:  '0 8px 24px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.30)',
             }}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -74,6 +118,7 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* Step 1：輸入 Email */}
         {step === 'request' ? (
           <div className="space-y-3">
             <input
@@ -93,15 +138,16 @@ export default function LoginPage() {
               className="w-full py-3.5 rounded-ios-lg font-display font-semibold text-[15px] text-white liquid-lensing transition-all"
               style={{
                 background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue), var(--ios-cyan))',
-                boxShadow: '0 8px 24px rgba(10,132,255,0.40), inset 0 1px 0 rgba(255,255,255,0.30)',
-                opacity: (loading || !emailValid) ? 0.45 : 1,
-                cursor:  (loading || !emailValid) ? 'not-allowed' : 'pointer',
+                boxShadow:  '0 8px 24px rgba(10,132,255,0.40), inset 0 1px 0 rgba(255,255,255,0.30)',
+                opacity:    (loading || !emailValid) ? 0.45 : 1,
+                cursor:     (loading || !emailValid) ? 'not-allowed' : 'pointer',
               }}
             >
               {loading ? '寄送中…' : '寄送驗證碼'}
             </button>
           </div>
         ) : (
+          /* Step 2：輸入驗證碼 */
           <div className="space-y-3">
             <input
               type="text"
@@ -140,6 +186,57 @@ export default function LoginPage() {
           僅授權 Email 可登入 · 所有登入行為均記錄
         </p>
       </div>
+
+      {/* 記住這台裝置 Modal */}
+      {showRemember && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+        >
+          <div className="liquid-glass-strong liquid-lensing rounded-ios-xl p-6 max-w-sm w-full space-y-4 animate-ios-pop">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-ios-md flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-cyan))',
+                  boxShadow:  '0 4px 12px rgba(10,132,255,0.35)',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="14" height="9" rx="2" />
+                  <path d="M6 7V5a3 3 0 016 0v2" />
+                  <circle cx="9" cy="12" r="1.2" fill="white" stroke="none" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-[16px] text-primary">記住這台裝置？</h3>
+                <p className="text-[12px] text-tertiary font-display mt-0.5">有效期限 30 天</p>
+              </div>
+            </div>
+            <p className="text-[13px] text-secondary font-display leading-relaxed">
+              下次開啟時，系統自動寄出驗證碼給你，不用再輸入 Email。
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={skipRemember}
+                className="flex-1 liquid-glass-thin rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-secondary"
+              >
+                這次不要
+              </button>
+              <button
+                onClick={doRemember}
+                className="flex-1 rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-white"
+                style={{
+                  background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue), var(--ios-cyan))',
+                  boxShadow:  '0 4px 14px rgba(10,132,255,0.40)',
+                }}
+              >
+                記住，快速登入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
