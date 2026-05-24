@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { generateOtp, hashOtp, signChallenge, normalizeEmail, isValidEmail, isAdminEmail } from '@/lib/auth';
 import { isWhitelisted } from '@/lib/whitelist';
 import { getClientIp, isBlocked, incrRate, blockIp, RATE_MAX } from '@/lib/rateLimit';
 import { sendBlockNotification } from '@/lib/blockNotify';
 
 export async function POST(req: Request) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: '伺服器未設定 RESEND_API_KEY' }, { status: 500 });
+  const apiKey    = process.env.BREVO_API_KEY;
+  const sender    = process.env.BREVO_SENDER;
+  if (!apiKey || !sender) {
+    return NextResponse.json({ error: '伺服器未設定 BREVO_API_KEY / BREVO_SENDER' }, { status: 500 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -64,20 +64,24 @@ export async function POST(req: Request) {
   const challenge = await signChallenge(await hashOtp(otp), email);
 
   try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from:    'CHB FileUploader <onboarding@resend.dev>',
-      to:      email,
-      subject: `CHB 檔案傳輸 登入驗證碼：${otp}`,
-      html: `<div style="font-family:-apple-system,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f6f8fb;border-radius:16px">
+    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method:  'POST',
+      headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender:      { name: 'CHB FileUploader', email: sender },
+        to:          [{ email }],
+        subject:     `CHB 檔案傳輸 登入驗證碼：${otp}`,
+        htmlContent: `<div style="font-family:-apple-system,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f6f8fb;border-radius:16px">
   <h2 style="margin:0 0 16px;color:#1a2340">CHB 檔案傳輸登入驗證</h2>
   <p style="color:#444;margin:0 0 24px">您的一次性登入驗證碼為：</p>
   <div style="font-size:34px;font-weight:700;letter-spacing:8px;color:#0066ff;background:#fff;padding:20px;text-align:center;border-radius:12px;border:1px solid #e3e8f0">${otp}</div>
   <p style="color:#888;font-size:13px;margin:20px 0 0">此驗證碼 5 分鐘內有效，請勿轉發給他人。若非您本人操作，請忽略此信。</p>
 </div>`,
+      }),
     });
-    if (error) {
-      return NextResponse.json({ error: `寄信失敗：${error.message}` }, { status: 502 });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      return NextResponse.json({ error: `寄信失敗：${(e as any)?.message ?? resp.status}` }, { status: 502 });
     }
   } catch (e: any) {
     return NextResponse.json({ error: `寄信失敗：${e?.message ?? 'unknown'}` }, { status: 502 });

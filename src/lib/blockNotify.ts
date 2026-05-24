@@ -1,4 +1,3 @@
-import { Resend } from 'resend';
 import { SignJWT } from 'jose';
 
 const BASE_URL = 'https://chb-fileuploader.vercel.app';
@@ -63,9 +62,10 @@ export interface BlockNotifyOptions {
 }
 
 export async function sendBlockNotification(opts: BlockNotifyOptions): Promise<void> {
-  const apiKey   = process.env.RESEND_API_KEY;
-  const adminEmail = (process.env.OTP_RECIPIENT || '').trim();
-  if (!apiKey || !adminEmail) return;
+  const apiKey      = process.env.BREVO_API_KEY;
+  const sender      = process.env.BREVO_SENDER;
+  const adminEmail  = (process.env.OTP_RECIPIENT || '').trim();
+  if (!apiKey || !sender || !adminEmail) return;
 
   const { ip, email, headers, reason } = opts;
   const now = Date.now();
@@ -137,11 +137,14 @@ export async function sendBlockNotification(opts: BlockNotifyOptions): Promise<v
   </p>
 </div>`;
 
-  const resend = new Resend(apiKey);
-  await resend.emails.send({
-    from:    'CHB FileUploader <onboarding@resend.dev>',
-    to:      adminEmail,
-    subject: `【封鎖警示】${ip} 已被封鎖 · ${location || countryCode}`,
-    html,
+  await fetch('https://api.brevo.com/v3/smtp/email', {
+    method:  'POST',
+    headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sender:      { name: 'CHB FileUploader', email: sender },
+      to:          [{ email: adminEmail }],
+      subject:     `【封鎖警示】${ip} 已被封鎖 · ${location || countryCode}`,
+      htmlContent: html,
+    }),
   });
 }
