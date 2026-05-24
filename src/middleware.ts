@@ -7,7 +7,8 @@ export async function middleware(req: NextRequest) {
 
   if (
     pathname.startsWith('/login') ||
-    pathname.startsWith('/api/auth/')
+    pathname.startsWith('/api/auth/') ||
+    pathname === '/api/admin/block-action'  // email 動作按鈕，自帶 JWT 驗證
   ) {
     return NextResponse.next();
   }

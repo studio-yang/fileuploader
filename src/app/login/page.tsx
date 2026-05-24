@@ -13,8 +13,10 @@ export default function LoginPage() {
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState('');
   const [info, setInfo]                 = useState('');
-  const [checking, setChecking]         = useState(true);  // 初始裝置辨識
-  const [showRemember, setShowRemember] = useState(false); // 「記住裝置」Modal
+  const [checking, setChecking]         = useState(true);   // 初始裝置辨識
+  const [showRemember, setShowRemember] = useState(false);  // 「記住裝置」Modal
+  const [totpMode, setTotpMode]         = useState(false);  // TOTP 備援模式
+  const [totpCode, setTotpCode]         = useState('');
 
   const emailValid = EMAIL_RE.test(email.trim());
 
@@ -46,6 +48,21 @@ export default function LoginPage() {
       if (!r.ok) { setError(j.error || '寄送失敗，請稍後再試'); return; }
       setStep('verify');
       setInfo('驗證碼已寄出，請查收信件');
+    } finally { setLoading(false); }
+  }
+
+  async function verifyTotpLogin(code: string) {
+    if (!/^\d{6}$/.test(code)) { setError('請輸入 6 位數字'); return; }
+    setLoading(true); setError('');
+    try {
+      const r = await fetch('/api/auth/verify-totp', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: email.trim(), code }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setError(j.error || '備援驗證失敗'); setTotpCode(''); return; }
+      setShowRemember(true);
     } finally { setLoading(false); }
   }
 
@@ -147,35 +164,80 @@ export default function LoginPage() {
             </button>
           </div>
         ) : (
-          /* Step 2：輸入驗證碼 */
+          /* Step 2：輸入驗證碼（Email OTP 或 TOTP 備援） */
           <div className="space-y-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={otp}
-              disabled={loading}
-              onChange={(e) => {
-                const v = e.target.value.replace(/\D/g, '').slice(0, 6);
-                setOtp(v);
-                setError('');
-                if (v.length === 6 && !loading) verifyOtp(v);
-              }}
-              placeholder="------"
-              autoFocus
-              className="w-full liquid-glass-thin rounded-ios-md py-3.5 px-4 text-center text-[26px] font-mono tracking-[0.5em] text-primary outline-none placeholder:text-quaternary disabled:opacity-60"
-            />
-            <p className="text-center text-[12px] font-display text-quaternary">
-              {loading ? '驗證中…' : '輸入完 6 位數即自動驗證'}
-            </p>
-            <button
-              type="button"
-              onClick={() => { setStep('request'); setOtp(''); setError(''); setInfo(''); }}
-              disabled={loading}
-              className="w-full text-tertiary text-[12px] font-display hover:text-secondary transition-colors py-1 disabled:opacity-50"
-            >
-              更換 Email / 重新寄送
-            </button>
+            {!totpMode ? (
+              <>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otp}
+                  disabled={loading}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtp(v);
+                    setError('');
+                    if (v.length === 6 && !loading) verifyOtp(v);
+                  }}
+                  placeholder="------"
+                  autoFocus
+                  className="w-full liquid-glass-thin rounded-ios-md py-3.5 px-4 text-center text-[26px] font-mono tracking-[0.5em] text-primary outline-none placeholder:text-quaternary disabled:opacity-60"
+                />
+                <p className="text-center text-[12px] font-display text-quaternary">
+                  {loading ? '驗證中…' : '輸入完 6 位數即自動驗證'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setStep('request'); setOtp(''); setError(''); setInfo(''); }}
+                  disabled={loading}
+                  className="w-full text-tertiary text-[12px] font-display hover:text-secondary transition-colors py-1 disabled:opacity-50"
+                >
+                  更換 Email / 重新寄送
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setTotpMode(true); setOtp(''); setError(''); }}
+                  disabled={loading}
+                  className="w-full text-quaternary text-[11px] font-display hover:text-tertiary transition-colors py-0.5 disabled:opacity-50"
+                >
+                  收不到驗證信？改用備援驗證碼（Authenticator App）
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-center text-[12px] font-display text-secondary">
+                  開啟 Authenticator App，輸入顯示的 6 位數
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={totpCode}
+                  disabled={loading}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setTotpCode(v);
+                    setError('');
+                    if (v.length === 6 && !loading) verifyTotpLogin(v);
+                  }}
+                  placeholder="------"
+                  autoFocus
+                  className="w-full liquid-glass-thin rounded-ios-md py-3.5 px-4 text-center text-[26px] font-mono tracking-[0.5em] text-primary outline-none placeholder:text-quaternary disabled:opacity-60"
+                />
+                <p className="text-center text-[12px] font-display text-quaternary">
+                  {loading ? '驗證中…' : '輸入完 6 位數即自動驗證'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setTotpMode(false); setTotpCode(''); setError(''); }}
+                  disabled={loading}
+                  className="w-full text-tertiary text-[12px] font-display hover:text-secondary transition-colors py-1 disabled:opacity-50"
+                >
+                  返回使用驗證信
+                </button>
+              </>
+            )}
           </div>
         )}
 

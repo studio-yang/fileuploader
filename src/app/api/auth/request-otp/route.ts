@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { generateOtp, hashOtp, signChallenge, normalizeEmail, isValidEmail, isAdminEmail } from '@/lib/auth';
 import { isWhitelisted } from '@/lib/whitelist';
 import { getClientIp, isBlocked, incrRate, blockIp, RATE_MAX } from '@/lib/rateLimit';
+import { sendBlockNotification } from '@/lib/blockNotify';
 
 export async function POST(req: Request) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -36,6 +37,11 @@ export async function POST(req: Request) {
     if (count > RATE_MAX) {
       if (!isAdminReq) {
         await blockIp(ip);
+        // 非同步寄通知信給管理員（不阻塞回應）
+        sendBlockNotification({
+          ip, email, headers: req.headers,
+          reason: `3 分鐘內請求超過 ${RATE_MAX} 次`,
+        }).catch(() => {});
         return NextResponse.json({ error: '請求過於頻繁，您的 IP 已被封鎖' }, { status: 429 });
       }
       return NextResponse.json({ error: '請求過於頻繁，請稍後再試' }, { status: 429 });

@@ -26,6 +26,13 @@ export default function AdminPage() {
   const [confirmDel, setConfirmDel]         = useState<string | null>(null);
   const [confirmUnblock, setConfirmUnblock] = useState<string | null>(null);
 
+  // TOTP 狀態
+  const [totpConfigured, setTotpConfigured]   = useState<boolean | null>(null);
+  const [totpSetup, setTotpSetup]             = useState<{ secret: string; qrCode: string } | null>(null);
+  const [totpVerifyCode, setTotpVerifyCode]   = useState('');
+  const [totpLoading, setTotpLoading]         = useState(false);
+  const [totpError, setTotpError]             = useState('');
+
   async function load() {
     setLoading(true); setError('');
     try {
@@ -41,7 +48,10 @@ export default function AdminPage() {
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    fetch('/api/admin/totp').then(r => r.json()).then(j => setTotpConfigured(!!j.configured)).catch(() => {});
+  }, []);
 
   async function unblock(ip: string) {
     setConfirmUnblock(null);
@@ -75,6 +85,34 @@ export default function AdminPage() {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { setError(j.error || '刪除失敗'); return; }
     await load();
+  }
+
+  async function startTotpSetup() {
+    setTotpLoading(true); setTotpError('');
+    const r = await fetch('/api/admin/totp', { method: 'POST' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { setTotpError(j.error || '產生 QR Code 失敗'); setTotpLoading(false); return; }
+    setTotpSetup({ secret: j.secret, qrCode: j.qrCode });
+    setTotpLoading(false);
+  }
+
+  async function confirmTotpSetup() {
+    if (!totpSetup || !totpVerifyCode.trim()) return;
+    setTotpLoading(true); setTotpError('');
+    const r = await fetch('/api/admin/totp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: totpSetup.secret, code: totpVerifyCode.trim() }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { setTotpError(j.error || '驗證失敗'); setTotpLoading(false); return; }
+    setTotpConfigured(true); setTotpSetup(null); setTotpVerifyCode(''); setTotpLoading(false);
+  }
+
+  async function disableTotp() {
+    setTotpLoading(true); setTotpError('');
+    await fetch('/api/admin/totp', { method: 'DELETE' });
+    setTotpConfigured(false); setTotpSetup(null); setTotpLoading(false);
   }
 
   async function logout() {
@@ -253,6 +291,86 @@ export default function AdminPage() {
             ))}
           </div>
         )}
+        {/* 分隔 */}
+        <div className="h-px my-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
+        {/* TOTP 備援登入 */}
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-0.5 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #8b5cf6, #6366f1)' }} />
+            <span className="text-[11px] font-display font-semibold text-tertiary tracking-wider uppercase">備援登入（TOTP）</span>
+          </div>
+          <span className="text-[12px] font-mono text-tertiary">
+            {totpConfigured === null ? '…' : totpConfigured ? '已設定' : '未設定'}
+          </span>
+        </div>
+
+        <div className="liquid-glass liquid-lensing rounded-ios-xl p-5 space-y-4">
+          {totpConfigured === false && !totpSetup && (
+            <div className="space-y-3">
+              <p className="text-[13px] text-secondary font-display">
+                收不到驗證信時，可用 Google Authenticator 等 App 產生備援驗證碼。
+              </p>
+              <button
+                onClick={startTotpSetup}
+                disabled={totpLoading}
+                className="px-5 py-2.5 rounded-ios-md font-display font-semibold text-[13px] text-white"
+                style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', opacity: totpLoading ? 0.5 : 1, cursor: totpLoading ? 'not-allowed' : 'pointer' }}
+              >
+                {totpLoading ? '產生中…' : '開始設定'}
+              </button>
+            </div>
+          )}
+
+          {totpSetup && (
+            <div className="space-y-4">
+              <p className="text-[13px] text-secondary font-display font-semibold">步驟 1 — 用 Authenticator App 掃描 QR Code</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={totpSetup.qrCode} alt="TOTP QR Code" className="w-44 h-44 rounded-ios-md mx-auto bg-white p-2" />
+              <p className="text-[10px] text-quaternary font-mono text-center break-all px-2">{totpSetup.secret}</p>
+              <p className="text-[13px] text-secondary font-display font-semibold">步驟 2 — 輸入 App 顯示的 6 位數確認</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={totpVerifyCode}
+                  onChange={(e) => { setTotpVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTotpError(''); }}
+                  placeholder="000000"
+                  className="flex-1 liquid-glass-thin rounded-ios-md py-2.5 px-3 text-center text-[20px] font-mono tracking-widest text-primary outline-none"
+                />
+                <button
+                  onClick={confirmTotpSetup}
+                  disabled={totpLoading || totpVerifyCode.length < 6}
+                  className="px-5 rounded-ios-md font-display font-semibold text-[13px] text-white"
+                  style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', opacity: (totpLoading || totpVerifyCode.length < 6) ? 0.45 : 1, cursor: (totpLoading || totpVerifyCode.length < 6) ? 'not-allowed' : 'pointer' }}
+                >
+                  {totpLoading ? '確認中…' : '確認設定'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {totpConfigured && !totpSetup && (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[13px] font-display text-secondary">✓ TOTP 備援登入已啟用</p>
+                <p className="text-[11px] font-display text-tertiary mt-0.5">登入頁下方可切換使用 Authenticator App 驗證</p>
+              </div>
+              <button
+                onClick={disableTotp}
+                disabled={totpLoading}
+                className="liquid-glass-thin liquid-tint-red rounded-ios-md px-3 py-2 text-[12px] font-display font-semibold hover:opacity-80 transition-opacity"
+                style={{ color: 'var(--ios-red)' }}
+              >
+                停用
+              </button>
+            </div>
+          )}
+
+          {totpError && <p className="text-[12px] font-display" style={{ color: 'var(--ios-red)' }}>{totpError}</p>}
+        </div>
+
       </div>
 
       {/* Confirm modal */}
