@@ -7,7 +7,7 @@
 
 ## 🎯 一句話總覽
 
-彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入。**目前無進行中需求**。
+彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入 + Brevo 寄信（任意收件人）。**目前無進行中需求**。
 
 ---
 
@@ -49,7 +49,7 @@ react           18
 tailwindcss     3
 googleapis      (gdrive 上傳用)
 react-dropzone  (拖拉上傳)
-resend          (寄 OTP / 封鎖警示信)
+brevo           (寄 OTP / 封鎖警示信，透過 REST API fetch，取代 resend)
 jose            (JWT 簽發/驗證)
 ioredis         5.x  ← 白名單/封鎖/裝置/TOTP 資料存取（取代 @upstash/redis）
 otpauth         (TOTP 備援登入)
@@ -62,12 +62,16 @@ qrcode          (TOTP QR Code 產生)
 
 | Var | 用途 | Sensitive |
 |-----|------|-----------|
-| `RESEND_API_KEY` | Resend 寄信 | ✅ |
+| `BREVO_API_KEY` | Brevo 寄信 API Key | ✅ |
+| `BREVO_SENDER` | 寄件人信箱（`alan0109@mail2000.com.tw`，已在 Brevo 驗證）| ❌ |
 | `OTP_RECIPIENT` | 系統管理員 email（`alan0109@mail2000.com.tw`）| ❌ |
 | `AUTH_SECRET` | JWT 簽章金鑰（96 字元 hex）| ✅ |
 | `REDIS_URL` | Upstash Redis 連線字串（`rediss://...`），由 Vercel Storage 注入 | auto |
 | Google OAuth 系列 | gdrive 上傳用，既有未變動 | ✅ |
+| `RESEND_API_KEY` | 舊 Resend Key，已停用，可保留或刪除 | — |
 
+> ⚠️ **寄信改用 Brevo**（不需安裝套件，直接 fetch Brevo REST API）。
+> Resend 限制：未驗證網域時只能寄給帳號本人，無法寄給其他收件人。
 > ⚠️ **Redis 實際注入的是 `REDIS_URL`（Redis 協定格式），不是 `KV_REST_API_URL`。**
 > 程式碼用 `ioredis` 直接讀 `REDIS_URL`，若未來換成 Vercel KV 需重查 env var 名稱。
 > 真實 secret 從不寫入本檔，見本機 `.env.local`（git-ignored）。
@@ -135,13 +139,12 @@ fileuploader/
 
 ### ✅ 無進行中需求
 
-最後完成：IP 封鎖警示信 + TOTP 備援登入（`d7fde25`）。等使用者下新需求。
+最後完成：換用 Brevo 寄信，解決 Resend 無法寄給非帳號本人的限制（`3ee0d5f`）。等使用者下新需求。
 
 ### 🟡 已知但暫不處理（等使用者要求才動）
 - **稽核 Log**（每次登入/上傳/下載寫入 Redis 或 file）
 - **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖）
 - **白名單擴充欄位**（最後登入時間、登入次數、備註）
-- **Resend 寄件人改自有網域**（目前 `onboarding@resend.dev`）
 - **下載端保護**（GD URL 仍公開，站台本身已關起來）
 
 ---
@@ -300,6 +303,8 @@ Step 2（驗證碼輸入）
 
 | Commit | 訊息 | 日期 |
 |--------|------|------|
+| `3ee0d5f` | feat: switch email provider from Resend to Brevo | 2026-05-24 |
+| `9d61a23` | docs: add 12 engineering discipline rules to CLAUDE.md | 2026-05-24 |
 | `d7fde25` | feat: IP block email alert + TOTP emergency login backup | 2026-05-24 |
 | `737de9c` | feat: remember device for 30 days, skip email input on return visit | 2026-05-24 |
 | `00f24d4` | fix: switch to ioredis to support REDIS_URL from Vercel Redis integration | 2026-05-24 |
@@ -315,9 +320,9 @@ Step 2（驗證碼輸入）
 
 ## 📞 接手時建議的第一句話
 
-> 「我已讀完 CLAUDE.md，目前無進行中需求。最後完成的是 IP 封鎖警示信 + TOTP 備援登入（`d7fde25`）。請問有什麼新需求？」
+> 「我已讀完 CLAUDE.md，目前無進行中需求。最後完成的是換用 Brevo 寄信（`3ee0d5f`）。請問有什麼新需求？」
 
 ---
 
 *最後更新：2026-05-24*
-*更新者：Claude Opus 4.7*
+*更新者：Claude Opus 4.7 (session 2)*
