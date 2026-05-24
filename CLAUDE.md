@@ -7,7 +7,7 @@
 
 ## 🎯 一句話總覽
 
-彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單 CRUD 管理（KV 後端）+ 管理員入口 + 登出。**目前無進行中需求**。
+彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入。**目前無進行中需求**。
 
 ---
 
@@ -15,7 +15,7 @@
 
 1. 讀完本檔（~3 分鐘）
 2. 看「🚧 待辦」確認目前要做什麼
-3. 看「👤 使用者偏好」**務必遵守**（特別是「不寫文件、極簡 token」）
+3. 看「🛡️ 工程紀律 12 條鐵則」**先內化**，再看「👤 使用者偏好」**務必遵守**
 4. 直接動工或先問使用者確認
 
 ---
@@ -39,8 +39,8 @@
 - **Next.js 14.2.5** App Router + TypeScript
 - **Tailwind CSS**（含 `liquid-glass-*` 自訂 utilities）
 - **設計風格**：iOS visionOS / Liquid Glass，深色 slate-blue 中性底
-- **部署**：Vercel（已配 `vercel.json`，曾配 Netlify 但已淘汰）
-- **儲存**：Google Drive（既有）、GitHub Releases、Vercel KV（新增，做白名單用）
+- **部署**：Vercel（已配 `vercel.json`）
+- **儲存**：Google Drive（既有）、GitHub Releases、Upstash Redis（`ioredis` 連線）
 
 ### 套件（重點）
 ```
@@ -49,25 +49,28 @@ react           18
 tailwindcss     3
 googleapis      (gdrive 上傳用)
 react-dropzone  (拖拉上傳)
-resend          (寄 OTP 信)
+resend          (寄 OTP / 封鎖警示信)
 jose            (JWT 簽發/驗證)
-@vercel/kv      (將要加 — 白名單用)
+ioredis         5.x  ← 白名單/封鎖/裝置/TOTP 資料存取（取代 @upstash/redis）
+otpauth         (TOTP 備援登入)
+qrcode          (TOTP QR Code 產生)
 ```
 
 ---
 
 ## 🔐 環境變數（Vercel + 本機 .env.local）
 
-| Var | 值（本檔不存 secret）| Sensitive | 用途 |
-|-----|--------------------|-----------|------|
-| `RESEND_API_KEY` | `re_...` ⮕ **見本機 `.env.local`** | ✅ | Resend 寄信 |
-| `OTP_RECIPIENT` | `alan0109@mail2000.com.tw` | ❌ | 系統管理員 email（自動加入白名單）|
-| `AUTH_SECRET` | 96 字元 hex ⮕ **見本機 `.env.local`** | ✅ | JWT 簽章金鑰 |
-| `KV_*` 系列 | Vercel KV 整合自動注入（KV_URL / KV_REST_API_URL / KV_REST_API_TOKEN / KV_REST_API_READ_ONLY_TOKEN）| auto | Upstash Redis 連線（白名單）|
-| Google OAuth | 既有，未變動 | - | gdrive 上傳 |
+| Var | 用途 | Sensitive |
+|-----|------|-----------|
+| `RESEND_API_KEY` | Resend 寄信 | ✅ |
+| `OTP_RECIPIENT` | 系統管理員 email（`alan0109@mail2000.com.tw`）| ❌ |
+| `AUTH_SECRET` | JWT 簽章金鑰（96 字元 hex）| ✅ |
+| `REDIS_URL` | Upstash Redis 連線字串（`rediss://...`），由 Vercel Storage 注入 | auto |
+| Google OAuth 系列 | gdrive 上傳用，既有未變動 | ✅ |
 
-> 💡 **真實 secret 從不寫入本檔**（本檔會 commit 到 public repo）。本機 `.env.local` 已被 `.gitignore` 忽略，可放 secret。Vercel 端**三個環境**（Production/Preview/Development）都需設定。
-> 若 Claude 需要 secret 值，請從本機 `.env.local` 讀取（已存在）。
+> ⚠️ **Redis 實際注入的是 `REDIS_URL`（Redis 協定格式），不是 `KV_REST_API_URL`。**
+> 程式碼用 `ioredis` 直接讀 `REDIS_URL`，若未來換成 Vercel KV 需重查 env var 名稱。
+> 真實 secret 從不寫入本檔，見本機 `.env.local`（git-ignored）。
 
 ---
 
@@ -75,36 +78,38 @@ jose            (JWT 簽發/驗證)
 
 ```
 fileuploader/
-├── CLAUDE.md                          ← 本檔
+├── CLAUDE.md
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx                   主站（已加 RWD、改背景、改 footer 文案）
-│   │   ├── globals.css                樣式（背景已淡化、saturate 已降）
-│   │   ├── layout.tsx                 root
-│   │   ├── login/page.tsx             🆕 登入頁（OTP 自動驗證）
+│   │   ├── page.tsx                     主站（RWD、背景淡化、header 管理員入口+登出）
+│   │   ├── globals.css                  樣式（中性 slate 底色、saturate 降低）
+│   │   ├── layout.tsx                   root
+│   │   ├── login/page.tsx               登入頁（OTP + TOTP 備援 + 記住裝置 Modal）
+│   │   ├── admin/page.tsx               管理頁（白名單 + 封鎖 IP + TOTP 設定）
 │   │   └── api/
 │   │       ├── auth/
-│   │       │   ├── request-otp/route.ts   🆕 產 OTP + Resend 寄信
-│   │       │   ├── verify-otp/route.ts    🆕 驗 OTP + 簽 session
-│   │       │   └── logout/route.ts        🆕 清 cookie
-│   │       └── upload/                既有（gdrive/github/gcs）
-│   ├── middleware.ts                  🆕 守門（含 /admin 與 /api/admin/* 的 admin gate）
-│   ├── lib/
-│   │   ├── auth.ts                    🆕 JWT (session 含 email) + OTP hash + isAdminEmail/isValidEmail
-│   │   ├── whitelist.ts               🆕 Upstash Redis CRUD (sorted set，含 admin 置頂邏輯)
-│   │   ├── gdriveResumable.ts         既有
-│   │   ├── utils.ts                   既有
-│   │   ├── types.ts                   既有
-│   │   └── providers/                 既有
-│   └── components/upload/             既有（已修 ProviderSelector 文字色）
-
-新增的 admin 相關路由：
-│   ├── app/admin/page.tsx             🆕 白名單管理 UI（卡片列表 + 確認 modal）
-│   └── app/api/
-│       ├── admin/whitelist/route.ts   🆕 GET/POST/DELETE，requireAdmin gate
-│       └── auth/me/route.ts           🆕 回傳當前 session { email, isAdmin }
-├── .env.local                         本機環境變數（git-ignored）
-└── package.json
+│   │       │   ├── request-otp/         Email OTP 產生 + Rate Limit + 封鎖警示信
+│   │       │   ├── verify-otp/          OTP 驗證 + session cookie
+│   │       │   ├── verify-totp/         TOTP 備援登入驗證
+│   │       │   ├── check-device/        頁面載入時偵測已記住裝置 + 自動寄 OTP
+│   │       │   ├── remember-device/     儲存裝置 token（30 天）
+│   │       │   ├── me/                  回傳 { email, isAdmin }
+│   │       │   └── logout/              清 cookie
+│   │       ├── admin/
+│   │       │   ├── whitelist/           GET/POST/DELETE 白名單
+│   │       │   ├── blocklist/           GET/DELETE 封鎖 IP
+│   │       │   ├── totp/                GET/POST/DELETE TOTP 設定
+│   │       │   └── block-action/        email 動作按鈕（公開，JWT 驗證）
+│   │       └── upload/                  既有（gdrive/github/gcs）
+│   ├── middleware.ts                     守門（admin gate + block-action 豁免）
+│   └── lib/
+│       ├── auth.ts                      JWT + OTP hash + isAdminEmail
+│       ├── whitelist.ts                 白名單 Redis CRUD（ioredis）
+│       ├── rateLimit.ts                 Rate limit + IP 封鎖（ioredis）
+│       ├── device.ts                    記住裝置 CRUD（ioredis，TTL 30天）
+│       ├── totp.ts                      TOTP 產生/驗證/Redis 存取
+│       ├── blockNotify.ts               IP 封鎖警示信（含動作按鈕）
+│       └── [既有] gdriveResumable / utils / types / providers
 ```
 
 ---
@@ -113,14 +118,16 @@ fileuploader/
 
 | Commit | 內容 |
 |--------|------|
-| `667b7a1` | **RWD** — 行動版直向堆疊、header 縮減、icon-only tabs；背景由深 navy 改為中度 slate-blue |
-| `3531a70` | **去藍飽和** — slate 中性化、saturate 180%→125%、ProviderSelector / nav tab 藍字改白 |
-| `98e9ec3` | Footer 文案改為「FileUploader Designed By CHB IT Department 176752 © 2026 · Next.js + Vercel」|
-| `705071d` | **Magic-link OTP 登入系統** — `/login` 頁、3 個 auth API、middleware 守門、JWT cookie 8h、Resend 寄信、無狀態 OTP (challenge cookie 5 分鐘 TTL) |
-| `ac9ee72` | OTP 輸入到第 6 位自動驗證；錯誤自動清空輸入框 |
-| `477b02a` | Add CLAUDE.md handover doc for AI session continuity |
-| `46c80bc` | **Email 白名單 + 管理介面** — `/admin` 卡片列表、Upstash Redis (Vercel KV) 儲存、CRUD API、`/api/auth/me`、login 改要求 email、middleware admin gate、主站 header 加白名單入口 + 登出按鈕 |
-| 🆕 | **Rate Limit + IP 封鎖** — `src/lib/rateLimit.ts`、request-otp 加 IP 偵測/計數/封鎖、新 `/api/admin/blocklist` GET/DELETE、admin 頁加封鎖 IP 區塊+解除 modal；規格：3 分鐘 5 次封鎖、永久封鎖、管理員 email 豁免封鎖名單但仍受 rate-limit 節流 |
+| `667b7a1` | RWD、背景淡化 |
+| `3531a70` | 去藍飽和、文字對比修正 |
+| `98e9ec3` | Footer 文案 |
+| `705071d` | **Magic-link OTP 登入系統** |
+| `ac9ee72` | OTP 6 位自動驗證、錯誤清空 |
+| `46c80bc` | **Email 白名單 + 管理介面** |
+| `443c1f1` | **Rate Limit + 永久 IP 封鎖**（3 分鐘 5 次）、admin 解鎖 UI |
+| `00f24d4` | **ioredis 替換**（修正 KV 連線失敗：`REDIS_URL` 是 Redis 協定，非 REST）|
+| `737de9c` | **記住裝置**（30 天 cookie、自動偵測 + 自動寄 OTP、記住裝置 Modal）|
+| `d7fde25` | **IP 封鎖警示信 + TOTP 備援登入**（郵件含城市/裝置/動作按鈕；管理後台 TOTP 設定；登入頁備援切換）|
 
 ---
 
@@ -128,20 +135,86 @@ fileuploader/
 
 ### ✅ 無進行中需求
 
-上一個任務「白名單管理」已於 `46c80bc` 完成並推送。等使用者下新需求。
+最後完成：IP 封鎖警示信 + TOTP 備援登入（`d7fde25`）。等使用者下新需求。
 
 ### 🟡 已知但暫不處理（等使用者要求才動）
-- **稽核 Log**（每次登入/上傳/下載寫入 KV 或 file）
-- **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖該 email/IP）
-- **白名單擴充欄位**（最後登入時間、登入次數、備註欄）
+- **稽核 Log**（每次登入/上傳/下載寫入 Redis 或 file）
+- **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖）
+- **白名單擴充欄位**（最後登入時間、登入次數、備註）
 - **Resend 寄件人改自有網域**（目前 `onboarding@resend.dev`）
-- **下載端 OTP 驗證**（目前 Google Drive 連結仍然「知連結者皆可下載」— 站台本身已關起來，但 GD URL 仍公開）
+- **下載端保護**（GD URL 仍公開，站台本身已關起來）
 
-### 🟡 已知但暫不處理
-- Rate limit（防 OTP 寄信被濫用）
-- 登出 UI（API `/api/auth/logout` 已就緒，主站沒按鈕）
-- Resend 寄件人改為自有網域（目前用 `onboarding@resend.dev`）
-- 自動稽核 log（每次登入/上傳/下載）
+---
+
+## 🛡️ 工程紀律 12 條鐵則（最高優先，超越其他規範）
+
+> ⚠️ 以下 12 條規則適用於每一個任務，除非明確被覆寫。
+> 原則：**非簡單工作時，謹慎優先於速度**。
+> 簡單瑣事可自行判斷，重要工作必須嚴格遵守。
+
+### 規則 1 — 動手前先思考
+- 明確說出你的假設，不確定時**詢問而非猜測**
+- 遇到模糊地帶，列出多種可能的解讀
+- 若有更簡單的做法，**主動提出反對意見**
+- 卡住時停下來，明確說出哪裡不清楚
+
+### 規則 2 — 簡單優先
+- 用**最少的程式碼**解決問題，不做投機性開發
+- 不增加使用者沒要求的功能
+- 單次使用的程式不做抽象化封裝
+- 自我檢驗：資深工程師看了會不會覺得過度設計？會的話就簡化
+
+### 規則 3 — 外科手術式異動（極度重要）
+- **只動該動的程式**，只清理你自己造成的問題
+- **禁止**順手「改善」鄰近的程式碼、註解或格式
+- **禁止**重構沒壞的程式
+- 必須**遵循現有程式的風格**
+
+### 規則 4 — 目標導向執行
+- 定義明確的成功標準，反覆驗證直到達成
+- 不照本宣科按步驟做，而是定義成功標準後自行迭代
+- 強健的成功標準讓你能獨立完成任務
+
+### 規則 5 — Claude 只用於判斷類工作
+- ✅ Claude 適用於：分類、起草、摘要、資訊擷取
+- ❌ Claude **不適用於**：路由、重試、確定性轉換
+- 凡是程式碼能解決的，就用程式碼，不要用 AI 判斷
+
+### 規則 6 — Token 預算不是建議，是強制（避免 Context 爆掉）
+- **單一任務上限：4,000 tokens**
+- **單次 session 上限：30,000 tokens**
+- 接近上限時：**主動摘要並開新 session**
+- 超出預算必須**明白告知使用者**，禁止偷偷超用
+
+### 規則 7 — 衝突要明說，不要折中
+- 遇到兩種模式衝突時，**選一個**（較新的、測試過的優先）
+- 必須**解釋為什麼這樣選**
+- 把另一個方案**標記為待清理**
+- 禁止把衝突的模式混在一起
+
+### 規則 8 — 寫程式前先讀程式
+- 加入新程式前，先讀：exports、直接呼叫者、共用工具
+- 「看起來無關」是危險訊號
+- 不理解現有程式的結構時，**主動詢問**
+
+### 規則 9 — 測試要驗證「意圖」，不只是「行為」
+- 測試必須說明**為什麼**這個行為重要，不只是**做了什麼**
+- 業務邏輯變更時，**測試應該要會失敗**，才是好測試
+
+### 規則 10 — 每個重要步驟都要 Checkpoint（避免 Context 爆掉）
+- 完成一個步驟就**摘要**：做了什麼、驗證了什麼、還剩什麼
+- 不要從一個「你無法描述清楚」的狀態繼續做下去
+- 失去頭緒時：**停下來，重新陳述目前狀態**
+
+### 規則 11 — 遵循現有程式的慣例，即使你不認同
+- 在現有專案內，**遵循慣例 > 個人喜好**
+- 真心覺得某個慣例有害？**提出來討論**，不要自己偷偷改
+- 不能因為自己覺得更好就分岔另一種風格
+
+### 規則 12 — 失敗要大聲說
+- 「完成」這兩個字，**只要有任何步驟被跳過就是錯的**
+- 「測試通過」**只要有任何測試被跳過就是錯的**
+- 預設要**主動揭露不確定性**，禁止隱藏
 
 ---
 
@@ -149,174 +222,102 @@ fileuploader/
 
 ### 語言
 - **繁體中文（台灣風格）**：「軟體」非「软件」、「網路」非「网络」
-- 專業術語保留英文（SQL Injection、XSS、IIS、OWASP）
 
 ### Token 使用
 - **極簡優先**：使用者多次強調「最少 token」、「不要產出文件」
-- 不要重複解釋已說過的東西
-- 不要產出 CLAUDE.md（user 全域）規範的 11 份必要文件 — **使用者明確說過不要文件**
-- 預估 token 時要**誠實+具體**，不要灌水也不要低估
+- 不要產出全域 CLAUDE.md 規範的 11 份必要文件 — **本專案明確說不要**
+- 預估 token 要**誠實+具體**
 
 ### 風格
-- **直接、結論先行**：先給答案，再展開細節
-- **主動提出反對意見**（規則 1）：使用者多次拋出資安/設計上有問題的方案，應該直接點出問題並建議替代方案，而不是順著做
-- 提供選項時用**表格**+ 推薦標記，不要長篇大論
-- 重要警告用 ⚠️ 標示
+- **直接、結論先行**
+- 提供選項時用**表格** + 推薦標記
+- 重要警告用 ⚠️
 
 ### 工作模式
-- 改完**立刻 commit + push**（Vercel 自動部署）
-- Commit message：**簡短英文 imperative**（如 `Add X feature`、`Fix Y bug`），對齊現有風格
-- 不寫單元測試（使用者沒要求）
-- 不做使用者沒要求的事（不順手重構、不順手「改善」）
+- 改完**立刻 commit + push**
+- Commit message：**簡短英文 imperative**
+- 不寫單元測試
+- **新需求流程**：使用者先說需求 → Claude 評估 + token 估算 → 使用者說「動工」→ 才開始
 
 ### 已知雷區
-- 使用者曾提：「固定密碼 CHB 加密」、「TOTP 加密檔案」、「帳號=密碼=工號 176752」— **這些都不安全，已被否決，不要再順著做**
-- 最終確定的方案：**Email OTP magic-link 登入**（已實作）+ **白名單管理**（待實作）
+- 「固定密碼 CHB 加密」、「帳號=密碼=工號 176752」— **已被否決，不要做**
 
 ---
 
 ## ⚙️ 工作慣例與環境
 
-### Git
-- 主分支：`main`
-- 推到 origin/main 後 Vercel **自動部署**
-- 已知警告（**不必處理**）：`LF will be replaced by CRLF` — Windows 環境正常
-- Commit 風格參考最近的：
-  ```
-  Add mobile RWD layout and lighten background tone
-  Update footer credit to CHB IT Department
-  Add magic-link OTP login gate via Resend email
-  ```
-
 ### Build
-- 指令：`npm run build`
-- **已知預期錯誤**（**不必修**）：
-  ```
-  [gdrive-token] Error: No refresh token or refresh handler callback is set.
-  ```
-  原因：本機沒有 Google OAuth refresh token；Vercel 上有完整 env，不會發生。
+- `npm run build`
+- **預期錯誤（不必修）**：`[gdrive-token] Error: No refresh token` — 本機無 Google OAuth token，Vercel 上正常
 
 ### 部署
-- Vercel 自動：push 到 main 即觸發
-- 環境變數修改後，**現有 deployment 大部分情況會即時讀取**（serverless function 重啟即生效）；若沒生效，到 Vercel Dashboard → Deployments → ⋯ → **Redeploy**
-
-### 本機開發
-```powershell
-cd C:\Users\Alan\Projects\fileuploader
-npm run dev      # http://localhost:3000
-npm run build    # 驗證
-```
+- push 到 main → Vercel 自動部署
+- env var 改後通常即時生效；若沒生效 → Vercel Dashboard → Deployments → Redeploy
 
 ---
 
-## 🎨 設計決策歷史
-
-### 配色（globals.css）
-- **底色**：`#141b2d-#1e2a4a`（深 navy） → `#2a3552-#3d4a78`（中度 slate） → `#232733-#313749`（中性 slate，**現行**）
-- **背景光暈 opacity**：5 個 radial gradient 全砍半（避免藍主宰）
-- **`backdrop-filter: saturate`**：180% → **125%**；200% → 135%；避免毛玻璃放大背景色
-- **參考風格**：Apple macOS Sequoia / Linear / Notion 的中性 dark mode
-
-### RWD（page.tsx）
-- Body：`flex` → `flex-col lg:flex-row`
-- Sidebar：`w-[280px]` → `w-full lg:w-[280px]`
-- Sidebar sticky：只在 `lg:` 以上啟用
-- Logo 文字：手機顯示「CHB 檔案傳輸」，桌機「CHB 外部檔案傳輸平台」
-- Nav tabs：手機 icon-only，桌機 icon+文字
-- Padding：`px-6` → `px-3 sm:px-6 lg:px-10`
-
-### 文字對比修正（ProviderSelector）
-- active 時 `color: p.iosColor`（藍字）→ 改 `var(--text-primary)`（白字）— 避免藍字寫在藍底
-- Header nav active tab：`text-tech-blue` → `text-primary` 同理
-
----
-
-## 🔐 認證系統設計（已實作）
+## 🔐 認證系統設計（完整）
 
 ```
-未登入 → middleware 攔截 → 跳 /login
-  ↓
-/login 頁
-  ├─ Step 1: 點「寄送驗證碼」
-  │   ↓ POST /api/auth/request-otp
-  │   - 產 6 位數 OTP
-  │   - Resend 寄到 OTP_RECIPIENT (環境變數，目前固定為 alan0109@mail2000.com.tw)
-  │   - 設 httpOnly cookie `otp_challenge`（JWT 簽，內含 OTP hash，TTL 5min）
-  ├─ Step 2: 輸入 6 位數（達 6 位自動驗證）
-  │   ↓ POST /api/auth/verify-otp { otp }
-  │   - 讀 cookie，hash 比對
-  │   - 通過 → 設 httpOnly cookie `session`（JWT，TTL 8h）
-  │   - 失敗 → 清空 input，顯示錯誤
-  ↓
-登入成功 → /
+訪問任何頁面
+  → middleware 攔截（白名單：/login、/api/auth/*、/api/admin/block-action）
+  → 無 session → 跳 /login
+
+/login 頁（載入時）
+  → GET /api/auth/check-device
+    ├─ 有 remembered_device cookie + Redis 有效 + 白名單通過
+    │   → 自動寄 OTP → 直接顯示驗證碼輸入框（跳過 Email 輸入）
+    └─ 否 → 顯示 Email 輸入框
+
+Step 1（Email 輸入）
+  → POST /api/auth/request-otp { email }
+    - IP Rate Limit（3 分鐘 5 次）
+    - 超限 → blockIp + 寄封鎖警示信給管理員（含解封/加白名單按鈕）
+    - 白名單確認 → 寄 OTP → set otp_challenge cookie（JWT, 5min）
+
+Step 2（驗證碼輸入）
+  ├─ Email OTP → POST /api/auth/verify-otp { email, otp }
+  └─ TOTP 備援 → POST /api/auth/verify-totp { email, code }
+       （僅管理員可用，需先在管理後台設定）
+
+驗證成功 → set session cookie（JWT, 8h）→ 顯示「記住裝置？」Modal
+  ├─ 記住 → POST /api/auth/remember-device → set remembered_device cookie（30 天）
+  └─ 不要 → 直接跳首頁
 ```
 
-### 安全性
-- OTP：6 位數，SHA-256 hash 保存
-- OTP 儲存：**無狀態**（JWT challenge cookie）— 不用 DB
-- Session：JWT (jose, HS256), 8h TTL
-- Cookie：`HttpOnly + Secure(prod) + SameSite=Lax`
-- 中介層：除 `/login` 與 `/api/auth/*` 外**全擋**
-- 未登入呼 API：回 **401 JSON**（非 302）
-
-### 「使用者輸入 email」改造（✅ 已完成於 `46c80bc`）
-- ✅ 登入頁加 email 輸入欄（Step 1 輸 email，Step 2 輸 OTP）
-- ✅ request-otp 收 `{ email }`，先查白名單，命中才寄到該 email
-- ✅ challenge cookie 加入 `email`，verify-otp 比對 email 一致
-- ✅ session 帶 `{ email }`（取代 `u: 'admin'`），用於 admin 權限判斷
-- ✅ 管理員身份判定：`isAdminEmail(email)` = `email.toLowerCase() === OTP_RECIPIENT.toLowerCase()`
-
----
-
-## 💡 給 Claude 的接手提示
-
-### 此使用者「會這樣做」
-- ✅ 一個需求拋出來會先**徵詢評估**，再決定動工
-- ✅ 通常會說「請先評估，不要動工」或「請評估 token 成本」
-- ✅ 喜歡看 UI 設計**預覽 / mockup**（可用 `AskUserQuestion` 的 `preview` 欄位提供）
-- ✅ 改完後常追問「Vercel 環境變數要設嗎」「Sensitive 要開嗎」這類部署細節
-
-### 此使用者「不會這樣做」
-- ❌ 不寫單元測試
-- ❌ 不要 11 份必要文件（雖然全域 CLAUDE.md 寫了，但**本專案明確說不要**）
-- ❌ 不接受「文件太長」的回應（會被嫌浪費 token）
-
-### 你（Claude）「應該這樣做」
-- 動工前先報 token 估算
-- 改完立刻 commit + push（不必問）
-- 對話結尾**給選項**讓使用者選下一步
-- 若使用者拋出**不安全**的方案，**先反對再給替代**（規則 1+7）
-
-### 你「不要這樣做」
-- ❌ 不要過度解釋
-- ❌ 不要主動寫文件（除非使用者明確要求）
-- ❌ 不要建議「我們再多加 XX 功能吧」這種使用者沒問的事
-- ❌ 不要假裝完成 — build 失敗就說失敗（規則 12）
+### Redis Key 規劃
+| Key | 內容 |
+|-----|------|
+| `whitelist:emails` | sorted set，score=addedAt，member=email |
+| `blocklist:ips` | sorted set，score=blockedAt，member=ip |
+| `ratelimit:otp:{ip}` | INCR counter，TTL 180 秒 |
+| `device:{token}` | string，value=email，TTL 30 天 |
+| `totp:secret:{email}` | string，value=base32 secret，永久 |
 
 ---
 
 ## 🔄 變更歷史（近 10 筆）
 
-| Commit | 訊息 | 日期（近似）|
-|--------|------|------------|
+| Commit | 訊息 | 日期 |
+|--------|------|------|
+| `d7fde25` | feat: IP block email alert + TOTP emergency login backup | 2026-05-24 |
+| `737de9c` | feat: remember device for 30 days, skip email input on return visit | 2026-05-24 |
+| `00f24d4` | fix: switch to ioredis to support REDIS_URL from Vercel Redis integration | 2026-05-24 |
+| `f8457eb` | fix: parse REDIS_URL as fallback when KV REST vars not found | 2026-05-24 |
+| `443c1f1` | Add OTP rate limit and permanent IP blocklist with admin unblock UI | 2026-05-24 |
+| `6c32afa` | Update CLAUDE.md after whitelist feature shipped | 2026-05-24 |
+| `46c80bc` | Add email whitelist admin with KV-backed CRUD and per-email OTP | 2026-05-24 |
+| `477b02a` | Add CLAUDE.md handover doc for AI session continuity | 2026-05-24 |
 | `ac9ee72` | Auto-submit OTP on 6 digits; clear input on error | 2026-05-24 |
 | `705071d` | Add magic-link OTP login gate via Resend email | 2026-05-24 |
-| `98e9ec3` | Update footer credit to CHB IT Department | 2026-05-24 |
-| `3531a70` | Tone down blue saturation and fix blue-on-blue text contrast | 2026-05-24 |
-| `667b7a1` | Add mobile RWD layout and lighten background tone | 2026-05-24 |
-| `f43bef5` | Record Netlify deployment verification（**舊**，已改 Vercel）|  |
-| `ef6ca7c` | Add Next.js security headers | |
-| `9a0697a` | Enable Netlify Next.js adapter（舊）| |
-| `e9f982d` | Set Netlify Next.js publish directory（舊）| |
-| `28b1f9c` | Add Netlify deployment config（舊）| |
 
 ---
 
 ## 📞 接手時建議的第一句話
 
-> 「我已讀完 CLAUDE.md，目前無進行中需求。最後一次完成的是 Email 白名單管理（commit `46c80bc`）。請問有什麼新需求？」
+> 「我已讀完 CLAUDE.md，目前無進行中需求。最後完成的是 IP 封鎖警示信 + TOTP 備援登入（`d7fde25`）。請問有什麼新需求？」
 
 ---
 
-*最後更新：2026-05-24（白名單功能完成後）*
-*更新者：Claude (Sonnet 4.5)*
+*最後更新：2026-05-24*
+*更新者：Claude Opus 4.7*
