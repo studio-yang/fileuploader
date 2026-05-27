@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Lottie from 'lottie-react';
+import emptyFolderAnimation from '../../../public/lottie/empty-folder.json';
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/components/I18nProvider';
 import { formatBytes } from '@/lib/utils';
 import { useToast } from '@/components/Toast';
 import {
@@ -45,6 +49,9 @@ function savePinned(s: Set<string>) {
 }
 
 export default function FileListPanel({ provider, refresh, isAdmin = false, onGoUpload }: Props) {
+  const t     = useTranslations('fileList');
+  const tToast = useTranslations('toast');
+  const { locale } = useLocale();
   const toast = useToast();
   const [files,       setFiles]       = useState<FileEntry[]>([]);
   const [trashCount,  setTrashCount]  = useState(0);
@@ -169,7 +176,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
   const copy = (url: string) => {
     navigator.clipboard.writeText(url);
     setCopied(url);
-    toast.success('連結已複製');
+    toast.success(tToast('linkCopied'));
     setTimeout(() => setCopied(null), 1800);
   };
 
@@ -215,21 +222,21 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
       } else {
         success = true;
         if (action === 'trash') {
-          toast.undo(`已移到垃圾桶 · ${ids.length} 個項目`, async () => {
+          toast.undo(tToast('movedToTrash', { count: ids.length }), async () => {
             await fetch('/api/files/action', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'restore', provider, ids }),
             }).catch(() => {});
             setRefreshTick((n) => n + 1);
-            toast.success('已復原');
+            toast.success(tToast('undoRestored'));
           });
           /* #15 Audit log */
           fetch('/api/audit/log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'trash', details: { provider, count: ids.length } }) }).catch(() => {});
         } else if (action === 'restore') {
-          toast.success(`已還原 ${ids.length} 個項目`);
+          toast.success(tToast('restoredCount', { count: ids.length }));
         } else if (action === 'permanent') {
-          toast.success(`已永久刪除 ${ids.length} 個項目`);
+          toast.success(tToast('deletedCount', { count: ids.length }));
           fetch('/api/audit/log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'permanent_delete', details: { provider, count: ids.length } }) }).catch(() => {});
         }
@@ -248,6 +255,8 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
   const showTrashEntry  = view === 'normal' && isAdmin;
   const showCheckbox    = isAdmin;
 
+  const confirmDeleteWord = t('confirmDeleteWord');
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -255,12 +264,12 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
         <div className="flex items-center gap-2.5">
           <span className="w-1 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, var(--tech-blue-300), var(--ios-cyan))' }}/>
           <span className="font-display font-semibold text-[17px] tracking-tight">
-            {view === 'trash' ? '垃圾桶' : '下載中心'}
+            {view === 'trash' ? t('trashTitle') : t('title')}
           </span>
           {view === 'trash' && (
             <button onClick={() => { setView('normal'); setSelected(new Set()); }}
               className="liquid-glass-thin rounded-full px-3 py-1 text-[12px] font-display text-secondary hover:text-primary transition-colors">
-              ← 返回
+              {t('back')}
             </button>
           )}
         </div>
@@ -269,12 +278,12 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
           <button
             onClick={() => setDisplayMode((m) => m === 'list' ? 'grid' : 'list')}
             className="liquid-glass-thin rounded-full p-2 text-tertiary hover:text-primary transition-colors"
-            title={displayMode === 'list' ? '切換格狀檢視' : '切換列表檢視'}
+            title={displayMode === 'list' ? t('gridView') : t('listView')}
           >
             {displayMode === 'list' ? <LayoutGrid size={14}/> : <LayoutList size={14}/>}
           </button>
           <div className="liquid-glass-thin liquid-tint-blue rounded-full px-3 py-1 text-[12px] font-display font-medium">
-            {files.length} 個項目
+            {t('itemCount', { count: files.length })}
           </div>
           <div className="liquid-glass-thin rounded-full px-3 py-1 text-[12px] font-display font-medium text-secondary">
             {formatBytes(totalSize)}
@@ -288,15 +297,15 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
           <div className="liquid-glass-thin rounded-full px-4 py-2.5 flex items-center gap-2.5 flex-1 min-w-[180px]">
             <Search size={14} className="text-tertiary flex-shrink-0" strokeWidth={1.8}/>
             <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜尋檔名…"
+              placeholder={t('searchPlaceholder')}
               className="bg-transparent outline-none border-none text-[14px] font-display flex-1 text-primary placeholder:text-quaternary"/>
-            {query && <button onClick={() => setQuery('')} aria-label="清除" className="text-quaternary hover:text-secondary text-[12px]">✕</button>}
+            {query && <button onClick={() => setQuery('')} aria-label="clear" className="text-quaternary hover:text-secondary text-[12px]">✕</button>}
           </div>
           <div className="liquid-glass-thin rounded-full p-1 flex gap-0.5">
             {([
-              { id: 'date', label: '時間' },
-              { id: 'name', label: '名稱' },
-              { id: 'size', label: '大小' },
+              { id: 'date', label: t('sortDate') },
+              { id: 'name', label: t('sortName') },
+              { id: 'size', label: t('sortSize') },
             ] as { id: SortKey; label: string }[]).map((s) => {
               const active = sortKey === s.id;
               return (
@@ -317,30 +326,30 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
       {showCheckbox && filtered.length > 0 && (
         <div className="liquid-glass-thin rounded-ios-md px-3 py-2 flex items-center gap-3 animate-ios-fade">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label={allChecked ? '取消全選' : '全選'} className="w-4 h-4 accent-tech-blue-500"/>
-            <span className="text-[12px] font-display text-secondary">{selected.size > 0 ? `已選 ${selected.size}` : '全選'}</span>
+            <input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label={allChecked ? t('selectAll') : t('selectAll')} className="w-4 h-4 accent-tech-blue-500"/>
+            <span className="text-[12px] font-display text-secondary">{selected.size > 0 ? t('selectedCount', { count: selected.size }) : t('selectAll')}</span>
           </label>
           <span className="text-[11px] font-display text-quaternary hidden sm:inline">
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px]">Ctrl+A</kbd> 全選 ·
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] ml-1">Del</kbd> 刪除 ·
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] ml-1">Esc</kbd> 取消
+            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px]">Ctrl+A</kbd> {t('selectAll')} ·
+            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] ml-1">Del</kbd> {t('permanentDelete')} ·
+            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] ml-1">Esc</kbd> {t('confirmCancel')}
           </span>
           {selected.size > 0 && (
             <div className="flex gap-1.5 ml-auto">
               {view === 'normal' ? (
                 <button onClick={() => setConfirmOpen({ action: 'trash', ids: Array.from(selected) })} disabled={busy}
                   className="liquid-glass-thin liquid-tint-red px-3 py-1.5 rounded-full text-[12px] font-display font-semibold transition-all hover:scale-[1.03] disabled:opacity-50 flex items-center gap-1.5">
-                  <Trash2 size={12}/> 移到垃圾桶
+                  <Trash2 size={12}/> {t('moveToTrash')}
                 </button>
               ) : (
                 <>
                   <button onClick={() => setConfirmOpen({ action: 'restore', ids: Array.from(selected) })} disabled={busy}
                     className="liquid-glass-thin liquid-tint-green px-3 py-1.5 rounded-full text-[12px] font-display font-semibold transition-all hover:scale-[1.03] disabled:opacity-50 flex items-center gap-1.5">
-                    <RotateCcw size={12}/> 還原
+                    <RotateCcw size={12}/> {t('restore')}
                   </button>
                   <button onClick={() => setConfirmOpen({ action: 'permanent', ids: Array.from(selected) })} disabled={busy}
                     className="liquid-glass-thin liquid-tint-red px-3 py-1.5 rounded-full text-[12px] font-display font-semibold transition-all hover:scale-[1.03] disabled:opacity-50 flex items-center gap-1.5">
-                    <X size={12}/> 永久刪除
+                    <X size={12}/> {t('permanentDelete')}
                   </button>
                 </>
               )}
@@ -374,9 +383,9 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
               <Trash2 size={20} className="text-red-400"/>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-display font-medium text-primary tracking-tight">垃圾桶</p>
+              <p className="text-[15px] font-display font-medium text-primary tracking-tight">{t('trashTitle')}</p>
               <p className="text-[12px] text-tertiary font-display mt-1">
-                {trashCount > 0 ? `${trashCount} 個項目可還原或永久刪除` : '尚無已刪除的檔案'}
+                {trashCount > 0 ? t('trashHasItems', { count: trashCount }) : t('trashEmpty')}
               </p>
             </div>
             {trashCount > 0 && (
@@ -390,21 +399,23 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
       {/* Empty state */}
       {!loading && files.length === 0 && (
         <div className="liquid-glass liquid-lensing rounded-ios-2xl text-center py-16 px-6 animate-ios-fade">
-          <div className="w-20 h-20 mx-auto mb-5 rounded-ios-xl liquid-glass-thin liquid-tint-blue flex items-center justify-center"
-            style={{ boxShadow: '0 8px 24px rgba(46,125,255,0.20)' }}>
-            {view === 'trash' ? <Trash2 size={32} className="text-tech-blue-300"/> : <FileIcon size={32} className="text-tech-blue-300"/>}
-          </div>
+          {view === 'trash'
+            ? <div className="w-20 h-20 mx-auto mb-5 rounded-ios-xl liquid-glass-thin liquid-tint-blue flex items-center justify-center" style={{ boxShadow: '0 8px 24px rgba(46,125,255,0.20)' }}>
+                <Trash2 size={32} className="text-tech-blue-300"/>
+              </div>
+            : <Lottie animationData={emptyFolderAnimation} loop style={{width:120,height:120}} className="mx-auto mb-5"/>
+          }
           <h3 className="text-[18px] font-display font-semibold text-primary mb-2">
-            {view === 'trash' ? '垃圾桶是空的' : '此儲存體尚無檔案'}
+            {view === 'trash' ? t('emptyTrashTitle') : t('emptyTitle')}
           </h3>
           <p className="text-tertiary text-[14px] font-display mb-5">
-            {view === 'trash' ? '已刪除的檔案會出現在這裡' : '把第一份檔案放上來開始使用吧'}
+            {view === 'trash' ? t('emptyTrashSubtitle') : t('emptySubtitle')}
           </p>
           {view === 'normal' && onGoUpload && (
             <button onClick={onGoUpload}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-display font-semibold text-[13px] text-white transition-all hover:scale-[1.05] hover:-translate-y-px"
               style={{ background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue), var(--ios-cyan))', boxShadow: '0 6px 20px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.30)' }}>
-              <Download size={14} style={{ transform: 'rotate(180deg)' }}/> 立刻上傳第一個檔案
+              <Download size={14} style={{ transform: 'rotate(180deg)' }}/> {t('uploadFirst')}
             </button>
           )}
         </div>
@@ -415,7 +426,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
         <div className="liquid-glass rounded-ios-lg text-center py-12 px-6 animate-ios-fade">
           <Search size={28} className="mx-auto mb-3 text-quaternary"/>
           <p className="text-secondary text-[14px] font-display">
-            找不到「<span className="text-tech-blue font-medium">{query}</span>」
+            {t('noSearchResult', { query })}
           </p>
         </div>
       )}
@@ -431,6 +442,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
                 selected={selected.has(f.key)}
                 copied={copied === f.downloadUrl}
                 isPinned={pinned.has(f.key)}
+                locale={locale}
                 onToggle={() => toggleOne(f.key)}
                 onCopy={() => copy(f.downloadUrl)}
                 onPin={() => togglePin(f.key)}
@@ -466,33 +478,48 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
           <div onClick={(e) => e.stopPropagation()}
             className="liquid-glass-strong liquid-lensing rounded-ios-xl p-6 max-w-md w-full space-y-4 animate-ios-pop">
             <h3 className="font-display font-bold text-[17px] text-primary flex items-center gap-2">
-              {confirmOpen.action === 'trash'     && <><Trash2 size={18} className="text-orange-400"/> 移到垃圾桶？</>}
-              {confirmOpen.action === 'restore'   && <><RotateCcw size={18} className="text-green-400"/> 還原 {confirmOpen.ids.length} 個項目？</>}
-              {confirmOpen.action === 'permanent' && <><X size={18} className="text-red-400"/> 永久刪除（無法復原）</>}
+              {confirmOpen.action === 'trash'     && <><Trash2 size={18} className="text-orange-400"/> {t('confirmTrashTitle')}</>}
+              {confirmOpen.action === 'restore'   && <><RotateCcw size={18} className="text-green-400"/> {t('confirmRestoreTitle', { count: confirmOpen.ids.length })}</>}
+              {confirmOpen.action === 'permanent' && <><X size={18} className="text-red-400"/> {t('confirmDeleteTitle')}</>}
             </h3>
             <p className="text-[13px] text-secondary font-display leading-relaxed">
-              {confirmOpen.action === 'trash' && <>將 <span className="font-mono font-semibold text-primary">{confirmOpen.ids.length}</span> 個項目移到垃圾桶，隨時可還原。</>}
-              {confirmOpen.action === 'restore' && <>將 <span className="font-mono font-semibold text-primary">{confirmOpen.ids.length}</span> 個項目放回原位置。</>}
-              {confirmOpen.action === 'permanent' && <>這 <span className="font-mono font-semibold text-red-300">{confirmOpen.ids.length}</span> 個項目將從伺服器徹底消失，<span className="font-semibold text-red-300">無法復原</span>。</>}
+              {confirmOpen.action === 'trash' && t.rich('confirmTrashBody', {
+                count: confirmOpen.ids.length,
+                bold: (chunks) => <span className="font-mono font-semibold text-primary">{chunks}</span>,
+              })}
+              {confirmOpen.action === 'restore' && t.rich('confirmRestoreBody', {
+                count: confirmOpen.ids.length,
+                bold: (chunks) => <span className="font-mono font-semibold text-primary">{chunks}</span>,
+              })}
+              {confirmOpen.action === 'permanent' && t.rich('confirmDeleteBody', {
+                count: confirmOpen.ids.length,
+                bold:   (chunks) => <span className="font-mono font-semibold text-red-300">{chunks}</span>,
+                danger: (chunks) => <span className="font-semibold text-red-300">{chunks}</span>,
+              })}
             </p>
             {confirmOpen.action === 'permanent' && (
               <div className="space-y-2">
-                <p className="text-[12px] font-display text-tertiary">輸入 <span className="font-mono font-semibold text-red-400">刪除</span> 確認：</p>
+                <p className="text-[12px] font-display text-tertiary">
+                  {t.rich('confirmDeleteInput', {
+                    word: confirmDeleteWord,
+                    code: (chunks) => <span className="font-mono font-semibold text-red-400">{chunks}</span>,
+                  })}
+                </p>
                 <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoFocus
-                  className="w-full liquid-glass-thin rounded-ios-md py-2 px-3 text-[14px] font-display text-primary outline-none" placeholder="刪除"/>
+                  className="w-full liquid-glass-thin rounded-ios-md py-2 px-3 text-[14px] font-display text-primary outline-none" placeholder={t('confirmDeletePlaceholder')}/>
               </div>
             )}
             <div className="flex gap-2 pt-1">
               <button onClick={() => { setConfirmOpen(null); setConfirmText(''); }} disabled={busy}
-                className="flex-1 liquid-glass-thin rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-secondary disabled:opacity-50">取消</button>
+                className="flex-1 liquid-glass-thin rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-secondary disabled:opacity-50">{t('confirmCancel')}</button>
               <button
                 onClick={() => runAction(confirmOpen.action, confirmOpen.ids)}
-                disabled={busy || (confirmOpen.action === 'permanent' && confirmText !== '刪除')}
+                disabled={busy || (confirmOpen.action === 'permanent' && confirmText !== confirmDeleteWord)}
                 className="flex-1 rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 style={confirmOpen.action === 'trash' ? { background: 'linear-gradient(135deg,#ff9500,#ff6a00)', boxShadow: '0 4px 14px rgba(255,149,0,.4)' }
                   : confirmOpen.action === 'permanent' ? { background: 'linear-gradient(135deg,#ff453a,#d70015)', boxShadow: '0 4px 14px rgba(255,69,58,.4)' }
                   : { background: 'linear-gradient(135deg,#30d158,#28a745)', boxShadow: '0 4px 14px rgba(48,209,88,.4)' }}>
-                {busy ? '處理中…' : confirmOpen.action === 'permanent' ? '永久刪除' : '確定'}
+                {busy ? t('confirmProcessing') : confirmOpen.action === 'permanent' ? t('permanentDelete') : t('confirmOk')}
               </button>
             </div>
           </div>
@@ -506,7 +533,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
           onClick={() => setShareFile(null)}>
           <div onClick={(e) => e.stopPropagation()}
             className="liquid-glass-strong liquid-lensing rounded-ios-xl p-6 max-w-sm w-full space-y-4 animate-ios-pop text-center">
-            <h3 className="font-display font-bold text-[17px] text-primary">分享檔案</h3>
+            <h3 className="font-display font-bold text-[17px] text-primary">{t('shareTitle')}</h3>
             <p className="text-[13px] text-tertiary font-display truncate">{shareFile.name}</p>
             {qrDataUrl ? (
               <img src={qrDataUrl} alt="QR Code" className="mx-auto w-[160px] h-[160px] rounded-ios-md" style={{ imageRendering: 'pixelated' }}/>
@@ -514,18 +541,18 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
               <div className="w-[160px] h-[160px] mx-auto rounded-ios-md shimmer"/>
             )}
             <div className="liquid-glass-thin rounded-ios-md px-3 py-2 text-left">
-              <p className="text-[11px] text-quaternary font-display mb-1">下載連結</p>
+              <p className="text-[11px] text-quaternary font-display mb-1">{t('shareDownloadLink')}</p>
               <p className="text-[12px] font-mono text-secondary break-all line-clamp-2">{shareFile.downloadUrl}</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => { copy(shareFile.downloadUrl); }}
                 className="flex-1 liquid-glass-thin rounded-ios-md py-2.5 text-[13px] font-display font-semibold flex items-center justify-center gap-2">
-                <Copy size={13}/> 複製連結
+                <Copy size={13}/> {t('shareCopyLink')}
               </button>
               <button onClick={() => setShareFile(null)}
                 className="flex-1 rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-white"
                 style={{ background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue))' }}>
-                關閉
+                {t('shareClose')}
               </button>
             </div>
           </div>
@@ -537,25 +564,25 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
         <div className="fixed z-[9999] liquid-glass-strong rounded-ios-md py-1 min-w-[180px] animate-ios-pop"
           style={{ left: ctxMenu.x, top: ctxMenu.y, boxShadow: '0 12px 32px rgba(0,0,0,0.50)' }}
           onClick={(e) => e.stopPropagation()}>
-          <CtxBtn icon={<Copy size={13}/>}   label="複製連結"  onClick={() => { copy(ctxMenu.downloadUrl); setCtxMenu(null); }}/>
-          <CtxBtn icon={<Share2 size={13}/>} label="分享 / QR Code" onClick={() => {
+          <CtxBtn icon={<Copy size={13}/>}   label={t('copyLink')}    onClick={() => { copy(ctxMenu.downloadUrl); setCtxMenu(null); }}/>
+          <CtxBtn icon={<Share2 size={13}/>} label={t('ctxShare')} onClick={() => {
             setShareFile(files.find((f) => f.key === ctxMenu.key) ?? null);
             setCtxMenu(null);
           }}/>
           <CtxBtn
             icon={ctxMenu.isPinned ? <PinOff size={13}/> : <Pin size={13}/>}
-            label={ctxMenu.isPinned ? '取消釘選' : '釘選到頂端'}
+            label={ctxMenu.isPinned ? t('unpin') : t('pinToTop')}
             onClick={() => { togglePin(ctxMenu.key); setCtxMenu(null); }}
           />
           <a href={ctxMenu.downloadUrl} download={ctxMenu.name} target="_blank" rel="noopener noreferrer"
             className="w-full text-left px-4 py-2.5 text-[13px] font-display font-medium hover:bg-white/[0.06] transition-colors flex items-center gap-2.5 text-primary"
             onClick={() => setCtxMenu(null)}>
-            <Download size={13}/> 下載
+            <Download size={13}/> {t('download')}
           </a>
           {isAdmin && (
             <>
               <div className="my-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}/>
-              <CtxBtn icon={<Trash2 size={13}/>} label="移到垃圾桶" danger onClick={() => {
+              <CtxBtn icon={<Trash2 size={13}/>} label={t('moveToTrash')} danger onClick={() => {
                 setConfirmOpen({ action: 'trash', ids: [ctxMenu.key] });
                 setCtxMenu(null);
               }}/>
@@ -568,12 +595,13 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
 }
 
 /* ── FileRow（列表模式） ── */
-function FileRow({ f, i, showCheckbox, selected, copied, isPinned, onToggle, onCopy, onPin, onShare, onContextMenu }: {
+function FileRow({ f, i, showCheckbox, selected, copied, isPinned, locale, onToggle, onCopy, onPin, onShare, onContextMenu }: {
   f: FileEntry; i: number; showCheckbox: boolean; selected: boolean;
-  copied: boolean; isPinned: boolean;
+  copied: boolean; isPinned: boolean; locale: string;
   onToggle: () => void; onCopy: () => void; onPin: () => void;
   onShare: () => void; onContextMenu: (e: React.MouseEvent) => void;
 }) {
+  const t = useTranslations('fileList');
   return (
     <div
       style={{ animationDelay: `${i * 40}ms` }}
@@ -583,7 +611,7 @@ function FileRow({ f, i, showCheckbox, selected, copied, isPinned, onToggle, onC
       <div className="flex items-center gap-3">
         {showCheckbox && (
           <input type="checkbox" checked={selected} onChange={onToggle}
-            aria-label={`選取 ${f.name}`} className="w-4 h-4 accent-tech-blue-500 flex-shrink-0"/>
+            aria-label={`${locale === 'en' ? 'Select' : '選取'} ${f.name}`} className="w-4 h-4 accent-tech-blue-500 flex-shrink-0"/>
         )}
 
         <div className={`liquid-glass-thin ${f.isFolder ? 'liquid-tint-orange' : getFileTint(f.name)} w-12 h-12 rounded-ios-md flex items-center justify-center flex-shrink-0 relative group/icon`}>
@@ -606,7 +634,7 @@ function FileRow({ f, i, showCheckbox, selected, copied, isPinned, onToggle, onC
           <p className="text-[15px] font-display font-medium truncate text-primary tracking-tight" title={f.name}>{f.name}</p>
           <div className="flex items-center gap-2 text-[12px] text-tertiary font-display mt-1">
             {!f.isFolder && <span className="font-mono">{formatBytes(f.size)}</span>}
-            {f.date && <><span className="text-quaternary">·</span><span>{formatDate(f.date)}</span></>}
+            {f.date && <><span className="text-quaternary">·</span><span>{formatDate(f.date, locale)}</span></>}
           </div>
         </div>
 
@@ -615,26 +643,26 @@ function FileRow({ f, i, showCheckbox, selected, copied, isPinned, onToggle, onC
             {/* #11 Pin */}
             <button onClick={onPin}
               className={`liquid-glass-thin w-8 h-8 rounded-full flex items-center justify-center transition-all hover:-translate-y-px ${isPinned ? 'liquid-tint-orange' : 'text-quaternary hover:text-primary'}`}
-              title={isPinned ? '取消釘選' : '釘選'}>
+              title={isPinned ? t('unpin') : t('pinToTop')}>
               {isPinned ? <PinOff size={12}/> : <Pin size={12}/>}
             </button>
             {/* #14 Share */}
             <button onClick={onShare}
               className="liquid-glass-thin w-8 h-8 rounded-full flex items-center justify-center text-quaternary hover:text-primary transition-all hover:-translate-y-px"
-              title="分享">
+              title={t('ctxShare')}>
               <Share2 size={12}/>
             </button>
             {/* Copy */}
             <button onClick={onCopy}
               className={`liquid-glass-thin px-3.5 py-2 rounded-full text-[12px] font-display font-medium transition-all hover:-translate-y-px flex items-center gap-1.5 ${copied ? 'liquid-tint-green animate-pulse-once' : ''}`}
-              title="複製下載連結">
+              title={t('copyLink')}>
               {copied ? <Check size={12}/> : <Copy size={12}/>}
-              {copied ? '已複製' : '複製'}
+              {copied ? t('copied') : t('copyLink')}
             </button>
             <a href={f.downloadUrl} download={f.name} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 rounded-full text-[12px] font-display font-semibold flex items-center gap-1.5 transition-all hover:scale-[1.05] hover:-translate-y-px"
               style={{ background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue), var(--ios-cyan))', color: 'white', boxShadow: '0 4px 12px rgba(10,132,255,0.40)' }}>
-              <Download size={12}/> 下載
+              <Download size={12}/> {t('download')}
             </a>
           </div>
         )}
@@ -718,10 +746,12 @@ function getFileTint(name: string): string {
   if (['xls','xlsx','csv'].includes(ext))                    return 'liquid-tint-green';
   return 'liquid-tint-blue';
 }
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const d = new Date(iso), now = new Date(), diff = now.getTime() - d.getTime(), day = 86400000;
-  if (diff < day)     return '今天';
-  if (diff < 2*day)   return '昨天';
-  if (diff < 7*day)   return `${Math.floor(diff/day)} 天前`;
-  return d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'short', day: 'numeric' });
+  if (diff < day)     return locale === 'en' ? 'Today'     : '今天';
+  if (diff < 2*day)   return locale === 'en' ? 'Yesterday' : '昨天';
+  if (diff < 7*day)   return locale === 'en'
+    ? `${Math.floor(diff/day)} days ago`
+    : `${Math.floor(diff/day)} 天前`;
+  return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-TW', { year: 'numeric', month: 'short', day: 'numeric' });
 }
