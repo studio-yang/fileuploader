@@ -7,7 +7,7 @@
 
 ## 🎯 一句話總覽
 
-彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入 + Brevo 寄信（任意收件人）。**目前無進行中需求**。
+彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入 + Brevo 寄信 + **UX v2.0（17 項）+ Mobile RWD 完成**。待辦：#8 Lottie、#17 PWA、#18 SW、#20 i18n（各有獨立 session 提示詞）。
 
 ---
 
@@ -193,8 +193,16 @@ fileuploader/
 
 **推薦組合**：1 + 2 + 4 + 5 + 6 共 ~1,530 tokens，做完跳一個 League。
 
-### 🟡 已知但暫不處理（等使用者要求才動）
-- **稽核 Log**（每次登入/上傳/下載寫入 Redis 或 file）
+### 🟡 UX v2.0 剩餘項目（各有獨立 session 提示詞，直接貼給新 session 即可）
+
+| # | 項目 | 提示詞已備 |
+|---|------|-----------|
+| #8  | Lottie 空狀態動畫 | ✅ |
+| #17 | PWA | ✅（與 #18 合併） |
+| #18 | Service Worker | ✅（與 #17 合併） |
+| #20 | i18n 多語系（繁中／英） | ✅ |
+
+### 🟡 其他已知但暫不處理（等使用者要求才動）
 - **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖）
 - **白名單擴充欄位**（最後登入時間、登入次數、備註）
 - **下載端保護**（GD URL 仍公開，站台本身已關起來）
@@ -372,6 +380,7 @@ Step 2（驗證碼輸入）
 
 | Commit | 訊息 | 日期 |
 |--------|------|------|
+| `508e231` | feat: UX v2.0 (17 items) + mobile RWD complete overhaul | 2026-05-28 |
 | `3ee0d5f` | feat: switch email provider from Resend to Brevo | 2026-05-24 |
 | `9d61a23` | docs: add 12 engineering discipline rules to CLAUDE.md | 2026-05-24 |
 | `d7fde25` | feat: IP block email alert + TOTP emergency login backup | 2026-05-24 |
@@ -389,9 +398,9 @@ Step 2（驗證碼輸入）
 
 ## 📞 接手時建議的第一句話
 
-> 「我已讀完 CLAUDE.md，目前無進行中需求。最後完成的是換用 Brevo 寄信（`3ee0d5f`）。請問有什麼新需求？」
+> 「我已讀完 CLAUDE.md，目前無進行中需求。最後完成的是 UX v2.0 全面實作（`508e231`）。請問有什麼新需求？」
 
 ---
 
-*最後更新：2026-05-24*
-*更新者：Claude Opus 4.7 (session 2)*
+*最後更新：2026-05-28*
+*更新者：Claude Sonnet 4.6 (session 3)*
