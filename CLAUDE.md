@@ -180,6 +180,19 @@ fileuploader/
 
 最後完成：UI/UX 全面優化方案 4（30 項全做完）。
 
+### 🔄 下次接手時的進化選單（已存 mem0，跑 `npm run mem0:load` 看完整版）
+
+**UX v2.0 進化提案**（共 20 項，分 4 Tier）
+
+| Tier | 內容（精簡）|
+|------|------|
+| S+ 業界標配 | 1) ⌘K Command Palette  2) 右鍵 Context Menu  3) 列表自動同步  4) 記住 provider |
+| A+ 視覺進化 | 5) Magnetic buttons  6) Cursor-follow glow  7) Spring animations  8) Lottie 空狀態  9) Toast stagger  10) Shimmer skeleton |
+| B+ 智能化 | 11) 釘選  12) 重複偵測  13) 批次進度條  14) 分享對話框  15) 稽核 Log  16) 拖曳重排 |
+| S++ 結構級 | 17) PWA  18) Service Worker  19) Grid View  20) i18n |
+
+**推薦組合**：1 + 2 + 4 + 5 + 6 共 ~1,530 tokens，做完跳一個 League。
+
 ### 🟡 已知但暫不處理（等使用者要求才動）
 - **稽核 Log**（每次登入/上傳/下載寫入 Redis 或 file）
 - **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖）
