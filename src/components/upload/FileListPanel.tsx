@@ -241,7 +241,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
               className="bg-transparent outline-none border-none text-[14px] font-display flex-1 text-primary placeholder:text-quaternary"
             />
             {query && (
-              <button onClick={() => setQuery('')} className="text-quaternary hover:text-secondary transition-colors text-[12px]">✕</button>
+              <button onClick={() => setQuery('')} aria-label="清除搜尋" className="text-quaternary hover:text-secondary transition-colors text-[12px]">✕</button>
             )}
           </div>
 
@@ -282,6 +282,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
               type="checkbox"
               checked={allChecked}
               onChange={toggleAll}
+              aria-label={allChecked ? '取消全選' : '全選'}
               className="w-4 h-4 accent-tech-blue-500"
             />
             <span className="text-[12px] font-display text-secondary">
@@ -427,6 +428,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
                 type="checkbox"
                 checked={selected.has(f.key)}
                 onChange={() => toggleOne(f.key)}
+                aria-label={`選取 ${f.name}`}
                 className="w-4 h-4 accent-tech-blue-500 flex-shrink-0"
               />
             )}

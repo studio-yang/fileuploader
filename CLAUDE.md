@@ -138,7 +138,7 @@ fileuploader/
 
 ## 🚧 待辦（目前進度）
 
-### 🔄 進行中：UI/UX 全面優化（方案 4）
+### ✅ 已完成：UI/UX 全面優化（方案 4） — 全 30 項
 
 > 圖例：☐ 未做 / 🔄 進行中 / ✅ 完成
 > 中途若 session 被打斷（rate limit、context 滿），下個 session 從本清單接續。
@@ -171,14 +171,14 @@ fileuploader/
 - ✅ B6 Light/Dark theme
 - ✅ B7 First-time onboarding
 
-**Tier C（設計系統）**
-- ☐ C1 Typography tokens
-- ☐ C2 Semantic color tokens
-- ☐ C3 Elevation tokens
-- ☐ C4 ARIA + WCAG AA 對比修正
-- ☐ C5 抽出共用元件
+**Tier C（設計系統）✅ 完成**
+- ✅ C1 Typography tokens（globals.css: --fs-h1/h2/h3/body/caption/micro + .t-* utility classes）
+- ✅ C2 Semantic color tokens（--color-success/warning/danger/info/neutral + _bg 版本）
+- ✅ C3 Elevation tokens（--elev-0/1/2/3/4/modal）
+- ✅ C4 ARIA labels（checkbox/icon 按鈕）+ light theme 對比拉到 WCAG AA
+- ✅ C5 抽出共用 Button 元件（`@/components/ui/Button`，含 6 variants × 3 sizes）
 
-最後完成：換用 Brevo 寄信（`3ee0d5f`）→ 管理員刪除/垃圾桶（`aeb7947`）。
+最後完成：UI/UX 全面優化方案 4（30 項全做完）。
 
 ### 🟡 已知但暫不處理（等使用者要求才動）
 - **稽核 Log**（每次登入/上傳/下載寫入 Redis 或 file）

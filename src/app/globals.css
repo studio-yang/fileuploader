@@ -63,6 +63,57 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.30), 0 2px 4px rgba(0,0,0,0.20);
   --shadow-lg: 0 16px 40px rgba(0,0,0,0.40), 0 6px 12px rgba(0,0,0,0.25);
   --shadow-xl: 0 24px 60px rgba(0,0,0,0.50), 0 10px 20px rgba(0,0,0,0.30);
+
+  /* ── C1: Typography tokens ────────────────────────────────────── */
+  --fs-h1: 32px;
+  --fs-h2: 22px;
+  --fs-h3: 17px;
+  --fs-body: 15px;
+  --fs-caption: 13px;
+  --fs-micro: 11px;
+  --lh-tight: 1.20;
+  --lh-normal: 1.45;
+  --lh-loose: 1.65;
+  --tracking-tight:  -0.02em;
+  --tracking-normal: -0.01em;
+  --tracking-wide:    0.04em;
+
+  /* ── C2: Semantic color tokens ────────────────────────────────── */
+  --color-success:    var(--ios-green);
+  --color-success-bg: rgba(48, 209, 88, 0.12);
+  --color-warning:    var(--ios-orange);
+  --color-warning-bg: rgba(255, 159, 10, 0.12);
+  --color-danger:     var(--ios-red);
+  --color-danger-bg:  rgba(255, 69, 58, 0.12);
+  --color-info:       var(--tech-blue-300);
+  --color-info-bg:    rgba(77, 148, 255, 0.12);
+  --color-neutral:    var(--text-tertiary);
+  --color-brand:      var(--tech-blue-500);
+
+  /* ── C3: Elevation tokens（surface 層級）─────────────────────── */
+  --elev-0: none;
+  --elev-1: 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12);
+  --elev-2: 0 4px 10px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
+  --elev-3: 0 10px 24px rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.20);
+  --elev-4: 0 20px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.25);
+  --elev-modal: 0 32px 80px rgba(0,0,0,0.55), 0 12px 24px rgba(0,0,0,0.30);
+}
+
+/* C1: Typography utility classes */
+.t-h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); letter-spacing: var(--tracking-tight); font-weight: 700; }
+.t-h2 { font-size: var(--fs-h2); line-height: var(--lh-tight); letter-spacing: var(--tracking-tight); font-weight: 700; }
+.t-h3 { font-size: var(--fs-h3); line-height: var(--lh-normal); letter-spacing: var(--tracking-normal); font-weight: 600; }
+.t-body { font-size: var(--fs-body); line-height: var(--lh-normal); }
+.t-caption { font-size: var(--fs-caption); line-height: var(--lh-normal); color: var(--text-tertiary); }
+.t-micro { font-size: var(--fs-micro); line-height: var(--lh-normal); color: var(--text-quaternary); letter-spacing: var(--tracking-wide); text-transform: uppercase; }
+.t-mono { font-family: var(--font-mono); }
+
+/* C2: Semantic color light theme overrides */
+[data-theme="light"] {
+  --color-success-bg: rgba(48, 209, 88, 0.16);
+  --color-warning-bg: rgba(255, 159, 10, 0.16);
+  --color-danger-bg:  rgba(255, 69, 58, 0.16);
+  --color-info-bg:    rgba(77, 148, 255, 0.16);
 }
 
 /* ─── B6: Light theme（淺色版） ─────────────────────────────────────────── */
@@ -77,9 +128,9 @@
   --glass-stroke-hl:   rgba(0, 30, 80, 0.18);
 
   --text-primary:   rgba(15, 22, 42, 1.00);
-  --text-secondary: rgba(30, 38, 60, 0.85);
-  --text-tertiary:  rgba(50, 60, 85, 0.65);
-  --text-quaternary:rgba(60, 70, 95, 0.45);
+  --text-secondary: rgba(30, 38, 60, 0.92);     /* C4: 提高 0.85→0.92 */
+  --text-tertiary:  rgba(50, 60, 85, 0.78);     /* C4: 0.65→0.78（過 WCAG AA）*/
+  --text-quaternary:rgba(60, 70, 95, 0.60);     /* C4: 0.45→0.60 */
 }
 [data-theme="light"] body {
   background:
