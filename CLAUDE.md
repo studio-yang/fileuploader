@@ -295,6 +295,7 @@ fileuploader/
 | `npm run mem0:load` | 載入所有專案記憶 | **每次接手必執行** |
 | `npm run mem0:save -- "內容"` | 儲存一筆記憶 | 完成重要決策後 |
 | `npm run mem0:search -- "關鍵字"` | 搜尋特定記憶 | 需要查找歷史決策時 |
+| `npm run mem0:delete -- <id>` 或 `--keyword "字串"` | 刪除特定記憶 | 記憶過時或錯誤時 |
 
 > 記憶儲存在 mem0 雲端（`user_id: chb-fileuploader`），跨 session 永久保留。
 > Scripts 位於 `scripts/mem0-*.mjs`，需要 `.env.local` 中的 `MEM0_API_KEY`。

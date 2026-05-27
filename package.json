@@ -9,7 +9,8 @@
     "lint": "next lint",
     "mem0:load": "node --env-file=.env.local scripts/mem0-load.mjs",
     "mem0:save": "node --env-file=.env.local scripts/mem0-save.mjs",
-    "mem0:search": "node --env-file=.env.local scripts/mem0-search.mjs"
+    "mem0:search": "node --env-file=.env.local scripts/mem0-search.mjs",
+    "mem0:delete": "node --env-file=.env.local scripts/mem0-delete.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.11.0",
