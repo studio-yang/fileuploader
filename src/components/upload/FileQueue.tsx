@@ -36,6 +36,7 @@ export default function FileQueue({ files, onRemove, onCopy }: Props) {
         return (
           <div
             key={f.id}
+            data-status={f.status}
             style={{ animationDelay: `${idx * 60}ms` }}
             className="liquid-glass liquid-lensing rounded-ios-lg p-4 animate-ios-slide-up relative overflow-hidden"
           >

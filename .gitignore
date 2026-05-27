@@ -29,6 +29,16 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
+
+# Codex local overrides
+.codex/config.local.toml
+.codex/*.local.toml
+.codex/local/
+
+# Local agent overrides and secret scratch files
+.agents/**/*.local.*
+.agents/**/secrets.*
 
 # Vercel
 .vercel

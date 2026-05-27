@@ -10,7 +10,7 @@ if (!query) {
 
 const client = new MemoryClient({ apiKey: process.env.MEM0_API_KEY });
 
-const results = await client.search(query, { user_id: 'chb-fileuploader' });
+const results = await client.search(query, { filters: { user_id: 'chb-fileuploader' } });
 
 if (!results?.results?.length) {
   console.log('🔍 找不到相關記憶。');

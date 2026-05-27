@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { formatBytes } from '@/lib/utils';
+import { useToast } from '@/components/Toast';
 
 interface FileEntry {
   key:         string;     // 用於 select / 後端 action
@@ -22,6 +23,7 @@ type SortKey = 'date' | 'name' | 'size';
 type View    = 'normal' | 'trash';
 
 export default function FileListPanel({ provider, refresh, isAdmin = false }: Props) {
+  const toast = useToast();
   const [files,     setFiles]     = useState<FileEntry[]>([]);
   const [loading,   setLoading]   = useState(false);
   const [copied,    setCopied]    = useState<string | null>(null);
@@ -31,6 +33,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false }: Pr
   const [selected,  setSelected]  = useState<Set<string>>(new Set());
   const [busy,      setBusy]      = useState(false);
   const [confirmOpen, setConfirmOpen] = useState<null | { action: 'trash'|'permanent'|'restore'; ids: string[] }>(null);
+  const [confirmText, setConfirmText] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
 
   // 載入清單
@@ -101,6 +104,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false }: Pr
   // 執行批次動作
   async function runAction(action: 'trash' | 'restore' | 'permanent', ids: string[]) {
     setBusy(true);
+    let success = false;
     try {
       const r = await fetch('/api/files/action', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -108,15 +112,32 @@ export default function FileListPanel({ provider, refresh, isAdmin = false }: Pr
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) {
-        alert(`部分操作失敗：${JSON.stringify(j.failed ?? j.error)}`);
+        toast.error(`部分操作失敗：${j.error ?? `${j.failed?.length ?? '?'} 個項目`}`);
+      } else {
+        success = true;
+        // 成功 toast — 移到垃圾桶時附 Undo
+        if (action === 'trash') {
+          toast.undo(`已移到垃圾桶 · ${ids.length} 個項目`, async () => {
+            await fetch('/api/files/action', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'restore', provider, ids }),
+            }).catch(() => {});
+            setRefreshTick((n) => n + 1);
+            toast.success('已復原');
+          });
+        } else if (action === 'restore') {
+          toast.success(`已還原 ${ids.length} 個項目`);
+        } else if (action === 'permanent') {
+          toast.success(`已永久刪除 ${ids.length} 個項目`);
+        }
       }
     } catch (e: any) {
-      alert(`操作失敗：${e?.message ?? 'unknown'}`);
+      toast.error(`操作失敗：${e?.message ?? 'unknown'}`);
     } finally {
       setBusy(false);
       setConfirmOpen(null);
       setSelected(new Set());
-      setRefreshTick((n) => n + 1);
+      if (success) setRefreshTick((n) => n + 1);
     }
   }
 
@@ -383,31 +404,49 @@ export default function FileListPanel({ provider, refresh, isAdmin = false }: Pr
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
-          onClick={() => !busy && setConfirmOpen(null)}
+          onClick={() => !busy && (setConfirmOpen(null), setConfirmText(''))}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className="liquid-glass-strong liquid-lensing rounded-ios-xl p-6 max-w-md w-full space-y-4 animate-ios-pop"
           >
             <h3 className="font-display font-bold text-[17px] text-primary">
-              {confirmOpen.action === 'trash'   && '確定移到垃圾桶？'}
-              {confirmOpen.action === 'restore' && '確定還原這些項目？'}
+              {confirmOpen.action === 'trash'   && '移到垃圾桶？'}
+              {confirmOpen.action === 'restore' && '還原這些項目？'}
               {confirmOpen.action === 'permanent' && '⚠ 永久刪除（無法復原）'}
             </h3>
             <p className="text-[13px] text-secondary font-display leading-relaxed">
-              共 <span className="font-mono font-semibold text-primary">{confirmOpen.ids.length}</span> 個項目
+              將 <span className="font-mono font-semibold text-primary">{confirmOpen.ids.length}</span> 個項目
               {confirmOpen.action === 'trash' && (
                 <>
-                  {provider === 'gdrive'  && '，將移到 Google Drive 垃圾桶（可從 Drive 介面救回）'}
-                  {provider === 'gcs'     && '，將移到 GCS 內的「垃圾桶/」前綴'}
-                  {provider === 'github'  && '，將以 _TRASH_ 前綴重新命名'}
+                  移到垃圾桶，可從垃圾桶還原。
+                  {provider === 'gdrive'  && '（同步顯示在 Google Drive 的垃圾桶內）'}
                 </>
               )}
-              {confirmOpen.action === 'permanent' && '，徹底刪除後無法復原。'}
+              {confirmOpen.action === 'restore' && '還原至原位置。'}
+              {confirmOpen.action === 'permanent' && '徹底刪除。此動作無法復原。'}
             </p>
+
+            {/* 永久刪除：必須輸入「刪除」才能執行 */}
+            {confirmOpen.action === 'permanent' && (
+              <div className="space-y-2">
+                <p className="text-[12px] font-display text-tertiary">
+                  請輸入 <span className="font-mono font-semibold text-red-400">刪除</span> 確認：
+                </p>
+                <input
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  autoFocus
+                  className="w-full liquid-glass-thin rounded-ios-md py-2 px-3 text-[14px] font-display text-primary outline-none"
+                  placeholder="刪除"
+                />
+              </div>
+            )}
+
             <div className="flex gap-2 pt-1">
               <button
-                onClick={() => setConfirmOpen(null)}
+                onClick={() => { setConfirmOpen(null); setConfirmText(''); }}
                 disabled={busy}
                 className="flex-1 liquid-glass-thin rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-secondary disabled:opacity-50"
               >
@@ -415,10 +454,8 @@ export default function FileListPanel({ provider, refresh, isAdmin = false }: Pr
               </button>
               <button
                 onClick={() => runAction(confirmOpen.action, confirmOpen.ids)}
-                disabled={busy}
-                className={`flex-1 rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-white disabled:opacity-50 ${
-                  confirmOpen.action === 'permanent' ? 'bg-red-500' : confirmOpen.action === 'restore' ? 'bg-green-500' : 'bg-orange-500'
-                }`}
+                disabled={busy || (confirmOpen.action === 'permanent' && confirmText !== '刪除')}
+                className="flex-1 rounded-ios-md py-2.5 text-[13px] font-display font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 style={confirmOpen.action === 'trash' ? {
                   background: 'linear-gradient(135deg, #ff9500, #ff6a00)',
                   boxShadow:  '0 4px 14px rgba(255,149,0,0.40)',
@@ -430,7 +467,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false }: Pr
                   boxShadow:  '0 4px 14px rgba(48,209,88,0.40)',
                 }}
               >
-                {busy ? '處理中…' : '確定'}
+                {busy ? '處理中…' : confirmOpen.action === 'permanent' ? '永久刪除' : '確定'}
               </button>
             </div>
           </div>

@@ -1,0 +1,9 @@
+# Codex project configuration for FileUploader.
+# Keep this file free of secrets. Put local overrides in config.local.toml.
+
+model = "gpt-5-codex"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false

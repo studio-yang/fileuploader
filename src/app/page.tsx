@@ -162,32 +162,55 @@ export default function Home() {
             </span>
           </a>
 
-          {/* Nav tabs */}
+          {/* Nav tabs — S2: active 狀態加強（底色深 + 邊光 + bold）*/}
           <div className="liquid-glass-thin rounded-full p-1 flex gap-1 ml-1 sm:ml-6 flex-shrink-0">
             {([
               { id: 'upload'   as Tab, label: '上傳檔案',
                 icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10V3"/><path d="M3 6L7 3L11 6"/><path d="M2 11H12"/></svg> },
               { id: 'download' as Tab, label: '下載中心',
                 icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3V10"/><path d="M3 7L7 10L11 7"/><path d="M2 11H12"/></svg> },
-            ]).map((t) => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-full text-[13px] font-display font-semibold transition-all duration-300 ${
-                  activeTab === t.id ? 'liquid-tint-blue text-primary' : 'text-tertiary hover:text-secondary'
-                }`}>
-                {t.icon}<span className="hidden sm:inline">{t.label}</span>
-              </button>
-            ))}
+            ]).map((t) => {
+              const active = activeTab === t.id;
+              return (
+                <button key={t.id} onClick={() => setActiveTab(t.id)}
+                  className={`flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-full text-[13px] font-display transition-all duration-300 ${
+                    active
+                      ? 'text-white font-bold'
+                      : 'text-tertiary hover:text-secondary font-semibold'
+                  }`}
+                  style={active ? {
+                    background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue))',
+                    boxShadow:  '0 4px 12px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+                  } : undefined}>
+                  {t.icon}<span className="hidden sm:inline">{t.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Stats pills */}
-          <div className="hidden md:flex items-center gap-2">
-            <StatPill label="等待" value={pendingCount}   color="var(--text-tertiary)" />
-            <StatPill label="進行" value={uploadingCount} color="var(--tech-blue-300)" tint="liquid-tint-blue" />
-            <StatPill label="完成" value={successCount}   color="var(--ios-green)"    tint="liquid-tint-green" />
-          </div>
+          {/* Stats pills — S3: 只在 upload tab 顯示；S5: 點擊跳到該狀態 */}
+          {activeTab === 'upload' && (
+            <div className="hidden md:flex items-center gap-2">
+              <StatPill label="等待" value={pendingCount}   color="var(--text-tertiary)"
+                onClick={pendingCount > 0 ? () => {
+                  const el = document.querySelector('[data-status="pending"]');
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } : undefined} />
+              <StatPill label="進行" value={uploadingCount} color="var(--tech-blue-300)" tint="liquid-tint-blue"
+                onClick={uploadingCount > 0 ? () => {
+                  const el = document.querySelector('[data-status="uploading"]');
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } : undefined} />
+              <StatPill label="完成" value={successCount}   color="var(--ios-green)"    tint="liquid-tint-green"
+                onClick={successCount > 0 ? () => {
+                  const el = document.querySelector('[data-status="success"]');
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } : undefined} />
+            </div>
+          )}
 
           {/* Admin link (僅管理員) */}
           {isAdmin && (
@@ -354,12 +377,22 @@ export default function Home() {
 }
 
 /* ── 小元件 ── */
-function StatPill({ label, value, color, tint = '' }: { label: string; value: number; color: string; tint?: string }) {
+function StatPill({ label, value, color, tint = '', onClick }: {
+  label: string; value: number; color: string; tint?: string; onClick?: () => void;
+}) {
+  const clickable = !!onClick;
   return (
-    <div className={`liquid-glass-thin ${tint} rounded-full px-3 py-1.5 flex items-center gap-2`}>
+    <button
+      onClick={onClick}
+      disabled={!clickable}
+      title={clickable ? `捲動到「${label}」` : undefined}
+      className={`liquid-glass-thin ${tint} rounded-full px-3 py-1.5 flex items-center gap-2 transition-all ${
+        clickable ? 'hover:scale-[1.05] cursor-pointer' : 'cursor-default'
+      }`}
+    >
       <span className="text-[18px] font-display font-bold" style={{ color }}>{value}</span>
       <span className="text-[11px] text-tertiary font-display">{label}</span>
-    </div>
+    </button>
   );
 }
 

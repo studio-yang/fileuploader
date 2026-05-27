@@ -138,9 +138,47 @@ fileuploader/
 
 ## 🚧 待辦（目前進度）
 
-### ✅ 無進行中需求
+### 🔄 進行中：UI/UX 全面優化（方案 4）
 
-最後完成：換用 Brevo 寄信，解決 Resend 無法寄給非帳號本人的限制（`3ee0d5f`）。等使用者下新需求。
+> 圖例：☐ 未做 / 🔄 進行中 / ✅ 完成
+> 中途若 session 被打斷（rate limit、context 滿），下個 session 從本清單接續。
+> 完成的項目立刻打 ✅ 並 commit。
+
+**Tier S（快速見效）✅ 完成**
+- ✅ S1 Toast 系統 + 5 秒 Undo Toast（取代 alert）
+- ✅ S2 Tab active 狀態加底線 + bold
+- ✅ S3 Header counter 在下載中心隱藏
+- ✅ S4 永久刪除加「輸入確認字樣」防誤刪
+- ✅ S5 Counter 點擊跳到該狀態檔案
+
+**Tier A（明顯改善）**
+- ☐ A1 檔案 icon 改用 lucide-react
+- ☐ A2 排序按鈕加 ↑↓ + 雙擊反向
+- ☐ A3 垃圾桶入口顯示項目數 badge
+- ☐ A4 主要按鈕 hover lift 動效
+- ☐ A5 確認對話框文案重寫
+- ☐ A6 Empty state 加 CTA
+- ☐ A7 Loading 改 skeleton
+- ☐ A8 長檔名 tooltip
+- ☐ A9 複製成功 ripple/pulse 動畫
+
+**Tier B（進階體驗）**
+- ☐ B1 Keyboard shortcuts
+- ☐ B2 圖片 hover 預覽
+- ☐ B3 Mobile header hamburger
+- ☐ B4 上傳完成 confetti
+- ☐ B5 管理頁分頁切換
+- ☐ B6 Light/Dark theme
+- ☐ B7 First-time onboarding
+
+**Tier C（設計系統）**
+- ☐ C1 Typography tokens
+- ☐ C2 Semantic color tokens
+- ☐ C3 Elevation tokens
+- ☐ C4 ARIA + WCAG AA 對比修正
+- ☐ C5 抽出共用元件
+
+最後完成：換用 Brevo 寄信（`3ee0d5f`）→ 管理員刪除/垃圾桶（`aeb7947`）。
 
 ### 🟡 已知但暫不處理（等使用者要求才動）
 - **稽核 Log**（每次登入/上傳/下載寫入 Redis 或 file）
@@ -238,6 +276,8 @@ fileuploader/
 - 重要警告用 ⚠️
 
 ### 工作模式
+- **Go beyond the basics**（別只做到基本款）— 每個回應都要打磨到像給真實客戶交付的成品
+- 回答前先思考，必要時使用較高推理強度
 - 改完**立刻 commit + push**
 - Commit message：**簡短英文 imperative**
 - 不寫單元測試
