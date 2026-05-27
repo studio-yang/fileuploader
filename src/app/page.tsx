@@ -355,7 +355,7 @@ export default function Home() {
 
             {/* ── Download Tab ── */}
             {activeTab === 'download' && (
-              <FileListPanel provider={provider} refresh={listRefresh} isAdmin={isAdmin} />
+              <FileListPanel provider={provider} refresh={listRefresh} isAdmin={isAdmin} onGoUpload={() => setActiveTab('upload')} />
             )}
           </main>
         </div>

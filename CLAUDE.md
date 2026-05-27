@@ -151,16 +151,16 @@ fileuploader/
 - ✅ S4 永久刪除加「輸入確認字樣」防誤刪
 - ✅ S5 Counter 點擊跳到該狀態檔案
 
-**Tier A（明顯改善）**
-- ☐ A1 檔案 icon 改用 lucide-react
-- ☐ A2 排序按鈕加 ↑↓ + 雙擊反向
-- ☐ A3 垃圾桶入口顯示項目數 badge
-- ☐ A4 主要按鈕 hover lift 動效
-- ☐ A5 確認對話框文案重寫
-- ☐ A6 Empty state 加 CTA
-- ☐ A7 Loading 改 skeleton
-- ☐ A8 長檔名 tooltip
-- ☐ A9 複製成功 ripple/pulse 動畫
+**Tier A（明顯改善）✅ 完成**
+- ✅ A1 檔案 icon 改用 lucide-react
+- ✅ A2 排序按鈕加 ↑↓ + 雙擊反向
+- ✅ A3 垃圾桶入口顯示項目數 badge
+- ✅ A4 主要按鈕 hover lift 動效
+- ✅ A5 確認對話框文案重寫
+- ✅ A6 Empty state 加 CTA
+- ✅ A7 Loading 改 skeleton
+- ✅ A8 長檔名 tooltip
+- ✅ A9 複製成功 ripple/pulse 動畫
 
 **Tier B（進階體驗）**
 - ☐ B1 Keyboard shortcuts
