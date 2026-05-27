@@ -43,6 +43,10 @@ yarn-error.log*
 # Vercel
 .vercel
 
+# next-pwa generated files (rebuilt on each deploy)
+/public/sw.js
+/public/workbox-*.js
+
 # Netlify
 .netlify
 
