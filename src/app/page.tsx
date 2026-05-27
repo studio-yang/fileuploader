@@ -332,7 +332,7 @@ export default function Home() {
 
             {/* ── Download Tab ── */}
             {activeTab === 'download' && (
-              <FileListPanel provider={provider} refresh={listRefresh} />
+              <FileListPanel provider={provider} refresh={listRefresh} isAdmin={isAdmin} />
             )}
           </main>
         </div>

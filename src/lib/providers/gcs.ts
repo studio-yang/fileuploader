@@ -92,12 +92,16 @@ export async function uploadStreamToGCS(
   return downloadUrl;
 }
 
-// ── List uploaded files ───────────────────────────────────────────────────────
-export async function listGCSFiles(): Promise<
+const TRASH_PREFIX = '垃圾桶/';
+const UPLOAD_PREFIX = 'uploads/';
+
+// ── List uploaded files（自動排除垃圾桶內容）─────────────────────────────────
+export async function listGCSFiles(opts?: { trashed?: boolean }): Promise<
   { name: string; size: number; updated: string; downloadUrl: string }[]
 > {
   const storage = getStorage();
-  const [files] = await storage.bucket(BUCKET()).getFiles({ prefix: 'uploads/' });
+  const prefix  = opts?.trashed ? TRASH_PREFIX : UPLOAD_PREFIX;
+  const [files] = await storage.bucket(BUCKET()).getFiles({ prefix });
 
   return Promise.all(
     files.map(async (f) => {
@@ -108,11 +112,35 @@ export async function listGCSFiles(): Promise<
         expires: Date.now() + 60 * 60 * 1000,
       });
       return {
-        name:        (meta.name as string).replace('uploads/', ''),
+        name:        (meta.name as string).replace(prefix, ''),
         size:        Number(meta.size ?? 0),
         updated:     meta.updated as string,
         downloadUrl: url,
       };
     }),
   );
+}
+
+// ── 移到垃圾桶（複製到 垃圾桶/ 前綴後刪除原檔）─────────────────────────────
+export async function trashGCSFile(displayName: string): Promise<void> {
+  const bucket    = getStorage().bucket(BUCKET());
+  const srcPath   = `${UPLOAD_PREFIX}${displayName}`;
+  const dstPath   = `${TRASH_PREFIX}${displayName}`;
+  await bucket.file(srcPath).copy(bucket.file(dstPath));
+  await bucket.file(srcPath).delete();
+}
+
+// ── 從垃圾桶還原 ──────────────────────────────────────────────────────────
+export async function restoreGCSFile(displayName: string): Promise<void> {
+  const bucket  = getStorage().bucket(BUCKET());
+  const srcPath = `${TRASH_PREFIX}${displayName}`;
+  const dstPath = `${UPLOAD_PREFIX}${displayName}`;
+  await bucket.file(srcPath).copy(bucket.file(dstPath));
+  await bucket.file(srcPath).delete();
+}
+
+// ── 永久刪除（從垃圾桶徹底刪除）─────────────────────────────────────────
+export async function permanentDeleteGCSFile(displayName: string): Promise<void> {
+  const bucket = getStorage().bucket(BUCKET());
+  await bucket.file(`${TRASH_PREFIX}${displayName}`).delete();
 }

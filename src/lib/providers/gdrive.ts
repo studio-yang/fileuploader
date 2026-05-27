@@ -70,50 +70,88 @@ export async function uploadToGoogleDrive(
   };
 }
 
-// ── List files in target folder + 自動設定公開權限 ────────────────────────────
-export async function listGoogleDriveFiles(): Promise<
-  { id: string; name: string; size: string; modifiedTime: string; downloadUrl: string }[]
-> {
+const FOLDER_MIME = 'application/vnd.google-apps.folder';
+
+export interface DriveFileItem {
+  id:           string;
+  name:         string;
+  size:         string;
+  modifiedTime: string;
+  downloadUrl:  string;
+  isFolder:     boolean;
+}
+
+// ── List files + folders in target folder + 自動設定公開權限 ──────────────────
+export async function listGoogleDriveFiles(opts?: { trashed?: boolean }): Promise<DriveFileItem[]> {
   const drive    = getDriveClient();
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const trashed  = opts?.trashed ?? false;
   const query    = folderId
-    ? `'${folderId}' in parents and trashed=false`
-    : "trashed=false and 'me' in owners";
+    ? `'${folderId}' in parents and trashed=${trashed}`
+    : `trashed=${trashed} and 'me' in owners`;
 
   const res = await drive.files.list({
     q:      query,
-    fields: 'files(id, name, size, modifiedTime, permissions)',
-    pageSize: 100,
-    orderBy:  'modifiedTime desc',
+    fields: 'files(id, name, size, modifiedTime, mimeType, permissions)',
+    pageSize: 200,
+    orderBy:  'folder,modifiedTime desc',
   });
 
   const files = res.data.files ?? [];
 
-  // 自動為「沒有公開權限」的檔案加上公開權限（讓直接放進資料夾的檔案也能下載）
-  await Promise.all(
-    files.map(async (f) => {
-      const hasPublicPermission = f.permissions?.some(
-        (p) => p.type === 'anyone' && p.role === 'reader',
-      );
-      if (!hasPublicPermission) {
-        try {
-          await drive.permissions.create({
-            fileId: f.id!,
-            requestBody: { role: 'reader', type: 'anyone' },
-            supportsAllDrives: true,
-          });
-        } catch (err) {
-          console.warn(`[gdrive] 無法為 ${f.name} 設定公開權限:`, err);
+  // 自動為「沒有公開權限」的檔案加上公開權限（資料夾不需要）
+  if (!trashed) {
+    await Promise.all(
+      files.map(async (f) => {
+        if (f.mimeType === FOLDER_MIME) return;
+        const hasPublic = f.permissions?.some((p) => p.type === 'anyone' && p.role === 'reader');
+        if (!hasPublic) {
+          try {
+            await drive.permissions.create({
+              fileId: f.id!,
+              requestBody: { role: 'reader', type: 'anyone' },
+              supportsAllDrives: true,
+            });
+          } catch (err) {
+            console.warn(`[gdrive] 無法為 ${f.name} 設定公開權限:`, err);
+          }
         }
-      }
-    }),
-  );
+      }),
+    );
+  }
 
   return files.map((f) => ({
     id:           f.id!,
     name:         f.name!,
     size:         f.size ?? '0',
     modifiedTime: f.modifiedTime ?? '',
-    downloadUrl:  `/api/download/gdrive/${f.id}`,
+    downloadUrl:  f.mimeType === FOLDER_MIME ? '' : `/api/download/gdrive/${f.id}`,
+    isFolder:     f.mimeType === FOLDER_MIME,
   }));
+}
+
+// ── 移到垃圾桶（trashed=true） ─────────────────────────────────────────────
+export async function trashGoogleDriveFile(fileId: string): Promise<void> {
+  await getDriveClient().files.update({
+    fileId,
+    requestBody: { trashed: true },
+    supportsAllDrives: true,
+  });
+}
+
+// ── 從垃圾桶還原（trashed=false） ─────────────────────────────────────────
+export async function restoreGoogleDriveFile(fileId: string): Promise<void> {
+  await getDriveClient().files.update({
+    fileId,
+    requestBody: { trashed: false },
+    supportsAllDrives: true,
+  });
+}
+
+// ── 永久刪除 ───────────────────────────────────────────────────────────────
+export async function permanentDeleteGoogleDriveFile(fileId: string): Promise<void> {
+  await getDriveClient().files.delete({
+    fileId,
+    supportsAllDrives: true,
+  });
 }
