@@ -53,7 +53,29 @@ const PROVIDERS = ALL_PROVIDERS.filter((p) => ENABLED[p.id as keyof typeof ENABL
 
 export default function ProviderSelector({ selected, onChange }: Props) {
   return (
-    <div className="flex flex-col gap-2.5">
+    <>
+      {/* ── 行動版：橫排 chip ── */}
+      <div className="flex gap-2 sm:hidden">
+        {PROVIDERS.map((p) => {
+          const active = selected === p.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => onChange(p.id)}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-ios-md text-[13px] font-display font-semibold transition-all duration-300 ${
+                active ? `liquid-glass-strong ${p.tintClass}` : 'liquid-glass-thin text-tertiary'
+              }`}
+              style={active ? { boxShadow: `0 4px 16px ${p.iosColor}30` } : undefined}
+            >
+              <span className="text-[16px]">{p.icon}</span>
+              <span className="truncate">{p.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── 桌機版：全卡片（原有）── */}
+      <div className="hidden sm:flex flex-col gap-2.5">
       {PROVIDERS.map((p, idx) => {
         const active = selected === p.id;
         return (
@@ -130,6 +152,7 @@ export default function ProviderSelector({ selected, onChange }: Props) {
           </button>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }

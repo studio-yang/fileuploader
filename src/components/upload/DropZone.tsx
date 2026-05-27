@@ -35,7 +35,7 @@ export default function DropZone({ onFiles, disabled }: Props) {
         transition-all duration-500 select-none group liquid-lensing
         ${isActive ? 'liquid-glass-strong scale-[1.01]' : 'liquid-glass liquid-hover'}
         ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
-        min-h-[320px] flex flex-col items-center justify-center text-center p-12
+        min-h-[200px] sm:min-h-[320px] flex flex-col items-center justify-center text-center p-6 sm:p-12
       `}
     >
       <input {...getInputProps()} />
@@ -52,7 +52,7 @@ export default function DropZone({ onFiles, disabled }: Props) {
       {/* Icon */}
       <div
         className={`
-          relative w-20 h-20 rounded-ios-xl flex items-center justify-center mb-6
+          relative w-14 h-14 sm:w-20 sm:h-20 rounded-ios-xl flex items-center justify-center mb-4 sm:mb-6
           transition-all duration-500
           ${isActive ? 'scale-110 animate-breathe' : 'group-hover:scale-105'}
         `}
@@ -72,12 +72,12 @@ export default function DropZone({ onFiles, disabled }: Props) {
       </div>
 
       <h3
-        className="font-display font-bold text-[28px] mb-2 tracking-tight"
+        className="font-display font-bold text-[20px] sm:text-[28px] mb-2 tracking-tight"
         style={{ color: isActive ? 'var(--tech-blue-200)' : 'var(--text-primary)' }}
       >
         {isActive ? '放開以選取' : '拖放檔案到這裡'}
       </h3>
-      <p className="text-secondary text-[15px] mb-7 font-display">
+      <p className="text-secondary text-[13px] sm:text-[15px] mb-4 sm:mb-7 font-display">
         或點擊選取 · 支援多檔同時上傳
       </p>
 

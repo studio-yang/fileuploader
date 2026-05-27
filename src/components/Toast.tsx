@@ -59,8 +59,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Toast container（右下角）*/}
       <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
-        {items.map((t) => (
-          <ToastView key={t.id} item={t} onClose={() => remove(t.id)} onAction={() => {
+        {items.map((t, i) => (
+          <ToastView key={t.id} item={t} index={i} onClose={() => remove(t.id)} onAction={() => {
             t.action?.onClick();
             remove(t.id);
           }} />
@@ -70,8 +70,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastView({ item, onClose, onAction }: {
-  item: ToastItem; onClose: () => void; onAction: () => void;
+function ToastView({ item, index, onClose, onAction }: {
+  item: ToastItem; index: number; onClose: () => void; onAction: () => void;
 }) {
   const tint = item.type === 'success' ? 'liquid-tint-green'
              : item.type === 'error'   ? 'liquid-tint-red'
@@ -85,8 +85,8 @@ function ToastView({ item, onClose, onAction }: {
 
   return (
     <div
-      className={`pointer-events-auto liquid-glass-strong liquid-lensing ${tint} rounded-ios-md px-4 py-3 flex items-center gap-3 min-w-[260px] max-w-[420px] animate-ios-slide-up`}
-      style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.40)' }}
+      className={`pointer-events-auto liquid-glass-strong liquid-lensing ${tint} rounded-ios-md px-4 py-3 flex items-center gap-3 min-w-[260px] max-w-[420px] toast-slide-in`}
+      style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.40)', animationDelay: `${index * 80}ms` }}
     >
       <span className="text-[16px] font-display font-bold">{icon}</span>
       <span className="text-[13px] font-display text-primary flex-1">{item.message}</span>

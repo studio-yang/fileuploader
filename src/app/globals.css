@@ -398,3 +398,65 @@ button:focus-visible, a:focus-visible {
   outline: 2px solid var(--tech-blue-300);
   outline-offset: 2px;
 }
+
+/* ─── UX v2.0 Additions ─────────────────────────────────────────────────── */
+
+/* #10 Shimmer skeleton */
+@keyframes shimmerSweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.5s ease-in-out infinite;
+  border-radius: inherit;
+}
+
+/* #9 Toast stagger slide-in */
+@keyframes toastSlideIn {
+  from { transform: translateX(120%) scale(0.92); opacity: 0; }
+  to   { transform: translateX(0)    scale(1);    opacity: 1; }
+}
+.toast-slide-in { animation: toastSlideIn 0.38s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+
+/* #7 Spring animations */
+.spring-hover {
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.30s ease;
+}
+.spring-hover:hover { transform: scale(1.04) translateY(-2px); }
+
+/* #5 Magnetic button */
+.magnetic { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* #6 Cursor glow */
+.cursor-glow {
+  position: fixed;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle at center,
+    rgba(46,125,255,0.07) 0%,
+    rgba(46,125,255,0.03) 35%,
+    transparent 70%
+  );
+  transform: translate(-50%, -50%);
+  will-change: left, top;
+}
+
+/* #19 Grid view */
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+@media (max-width: 640px) {
+  .file-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+}
