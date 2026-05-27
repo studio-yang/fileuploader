@@ -7,7 +7,7 @@
 
 ## 🎯 一句話總覽
 
-彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入 + Brevo 寄信 + **UX v2.0（17 項）+ Mobile RWD 完成**。待辦：#8 Lottie、#17 PWA、#18 SW、#20 i18n（各有獨立 session 提示詞）。
+彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入 + Brevo 寄信 + UX v2.0 全 30 項 + Mobile RWD + Lottie + PWA/SW + **i18n 繁中/英文**。UX v2.0 全部完成。
 
 ---
 
@@ -193,14 +193,9 @@ fileuploader/
 
 **推薦組合**：1 + 2 + 4 + 5 + 6 共 ~1,530 tokens，做完跳一個 League。
 
-### 🟡 UX v2.0 剩餘項目（各有獨立 session 提示詞，直接貼給新 session 即可）
+### ✅ UX v2.0 全部完成（共 20 項）
 
-| # | 項目 | 提示詞已備 |
-|---|------|-----------|
-| #8  | Lottie 空狀態動畫 | ✅ |
-| #17 | PWA | ✅（與 #18 合併） |
-| #18 | Service Worker | ✅（與 #17 合併） |
-| #20 | i18n 多語系（繁中／英） | ✅ |
+- #8 Lottie 空狀態動畫、#17 PWA、#18 Service Worker、#20 i18n zh-TW/en
 
 ### 🟡 其他已知但暫不處理（等使用者要求才動）
 - **登入失敗鎖定**（連續輸入錯誤 OTP N 次後封鎖）
@@ -380,6 +375,9 @@ Step 2（驗證碼輸入）
 
 | Commit | 訊息 | 日期 |
 |--------|------|------|
+| `ca0e859` | feat: i18n zh-TW/en (#20) — next-intl 4.12, locale switcher, 全元件翻譯 |
+| `797754a` | feat: Lottie empty state animation (#8) |
+| `b0f9e68` | feat: PWA + Service Worker (#17 #18) |
 | `508e231` | feat: UX v2.0 (17 items) + mobile RWD complete overhaul | 2026-05-28 |
 | `3ee0d5f` | feat: switch email provider from Resend to Brevo | 2026-05-24 |
 | `9d61a23` | docs: add 12 engineering discipline rules to CLAUDE.md | 2026-05-24 |
@@ -403,4 +401,4 @@ Step 2（驗證碼輸入）
 ---
 
 *最後更新：2026-05-28*
-*更新者：Claude Sonnet 4.6 (session 3)*
+*更新者：Claude Sonnet 4.6 (session 4 — i18n)*
