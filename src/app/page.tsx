@@ -11,6 +11,9 @@ import {
   generateId, getMimeType, uploadWithProgress, resumableChunkUpload,
 } from '@/lib/utils';
 import { uploadToGoogleDriveDirect } from '@/lib/gdriveResumable';
+import { useConfetti } from '@/components/Confetti';
+import { Onboarding } from '@/components/Onboarding';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 type Tab = 'upload' | 'download';
 
@@ -24,6 +27,8 @@ export default function Home() {
   const [toast,       setToast]       = useState<string | null>(null);
   const [isAdmin,     setIsAdmin]     = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const confetti = useConfetti();
+  const [menuOpen, setMenuOpen] = useState(false);  // B3: mobile menu
 
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then((j) => {
@@ -116,7 +121,10 @@ export default function Home() {
     }
     setUploading(false);
     setListRefresh((n) => n + 1);
-  }, [fileItems, provider, update]);
+    // B4: 全部成功時放煙火
+    const allOk = pending.every((p) => fileItems.find((f) => f.id === p.id)?.status !== 'error');
+    if (allOk && !ac.signal.aborted) confetti.fire(50);
+  }, [fileItems, provider, update, confetti]);
 
   const cancelUpload  = () => abortRef.current?.abort();
   const removeFile    = (id: string) => setFileItems((prev) => prev.filter((f) => f.id !== id));
@@ -128,6 +136,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
+
+      {/* B4: Confetti 容器 */}
+      {confetti.view}
+
+      {/* B7: 首次使用 onboarding */}
+      <Onboarding isAdmin={isAdmin}/>
 
       {/* ── Toast ── */}
       {toast && (
@@ -212,11 +226,26 @@ export default function Home() {
             </div>
           )}
 
-          {/* Admin link (僅管理員) */}
+          {/* B6: Theme toggle */}
+          <ThemeToggle/>
+
+          {/* B3: Mobile hamburger（< sm 才顯示） */}
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="sm:hidden liquid-glass-thin rounded-full p-2 ml-1 flex-shrink-0 text-tertiary hover:text-primary transition-colors"
+            title="選單"
+            aria-label="開啟選單"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M2 4h10M2 7h10M2 10h10"/>
+            </svg>
+          </button>
+
+          {/* Admin link (僅管理員) — desktop 顯示 */}
           {isAdmin && (
             <button
               onClick={() => router.push('/admin')}
-              className="liquid-glass-thin liquid-tint-orange rounded-full px-2 sm:px-3 py-1.5 flex items-center gap-1.5 ml-1 sm:ml-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+              className="hidden sm:flex liquid-glass-thin liquid-tint-orange rounded-full px-3 py-1.5 items-center gap-1.5 ml-1 sm:ml-2 flex-shrink-0 hover:opacity-80 transition-opacity"
               title="白名單管理"
             >
               <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -227,10 +256,10 @@ export default function Home() {
             </button>
           )}
 
-          {/* 登出 */}
+          {/* 登出 — desktop */}
           <button
             onClick={logout}
-            className="liquid-glass-thin rounded-full px-2 sm:px-3 py-1.5 flex items-center ml-1 flex-shrink-0 text-tertiary hover:text-primary transition-colors"
+            className="hidden sm:flex liquid-glass-thin rounded-full px-3 py-1.5 items-center ml-1 flex-shrink-0 text-tertiary hover:text-primary transition-colors"
             title="登出"
           >
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -238,15 +267,40 @@ export default function Home() {
               <path d="M8 8.5L10.5 6 8 3.5" />
               <path d="M10.5 6H5" />
             </svg>
-            <span className="text-[11px] font-display font-semibold hidden sm:inline ml-1">登出</span>
+            <span className="text-[11px] font-display font-semibold ml-1">登出</span>
           </button>
 
-          {/* HTTPS */}
-          <div className="liquid-glass-thin liquid-tint-green rounded-full px-2 sm:px-3 py-1.5 flex items-center gap-1.5 ml-1 sm:ml-2 flex-shrink-0">
+          {/* HTTPS — desktop（從 header 拿掉 mobile，移到 footer 既有） */}
+          <div className="hidden sm:flex liquid-glass-thin liquid-tint-green rounded-full px-3 py-1.5 items-center gap-1.5 ml-2 flex-shrink-0">
             <span className="w-1.5 h-1.5 rounded-full animate-breathe" style={{ background: 'var(--ios-green)' }} />
             <span className="text-[11px] font-display font-semibold">HTTPS</span>
           </div>
         </div>
+
+        {/* B3: Mobile dropdown menu */}
+        {menuOpen && (
+          <div className="sm:hidden absolute top-16 right-3 z-50 liquid-glass-strong rounded-ios-md p-2 min-w-[160px] animate-ios-pop space-y-1" style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.45)' }}>
+            {isAdmin && (
+              <button
+                onClick={() => { setMenuOpen(false); router.push('/admin'); }}
+                className="w-full text-left px-3 py-2 rounded-md text-[13px] font-display font-medium text-primary hover:bg-white/[0.05] transition-colors"
+              >
+                ⚙ 白名單管理
+              </button>
+            )}
+            <button
+              onClick={() => { setMenuOpen(false); logout(); }}
+              className="w-full text-left px-3 py-2 rounded-md text-[13px] font-display font-medium text-primary hover:bg-white/[0.05] transition-colors"
+            >
+              ↩ 登出
+            </button>
+            <div className="border-t border-white/[0.06] my-1"/>
+            <div className="px-3 py-1.5 text-[11px] font-display text-tertiary flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ios-green)' }}/>
+              HTTPS 加密連線
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ── Body ── */}

@@ -162,14 +162,14 @@ fileuploader/
 - ✅ A8 長檔名 tooltip
 - ✅ A9 複製成功 ripple/pulse 動畫
 
-**Tier B（進階體驗）**
-- ☐ B1 Keyboard shortcuts
-- ☐ B2 圖片 hover 預覽
-- ☐ B3 Mobile header hamburger
-- ☐ B4 上傳完成 confetti
-- ☐ B5 管理頁分頁切換
-- ☐ B6 Light/Dark theme
-- ☐ B7 First-time onboarding
+**Tier B（進階體驗）✅ 完成**
+- ✅ B1 Keyboard shortcuts（Ctrl+A 全選 · Del 刪除 · Esc 取消）
+- ✅ B2 圖片 hover 預覽
+- ✅ B3 Mobile header hamburger
+- ✅ B4 上傳完成 confetti（純 CSS emoji 粒子）
+- ✅ B5 管理頁分頁切換（白名單 / 封鎖 IP / 備援登入）
+- ✅ B6 Light/Dark theme
+- ✅ B7 First-time onboarding
 
 **Tier C（設計系統）**
 - ☐ C1 Typography tokens

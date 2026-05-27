@@ -26,6 +26,10 @@ export default function AdminPage() {
   const [confirmDel, setConfirmDel]         = useState<string | null>(null);
   const [confirmUnblock, setConfirmUnblock] = useState<string | null>(null);
 
+  // B5: Admin tab
+  type AdminTab = 'whitelist' | 'blocklist' | 'totp';
+  const [adminTab, setAdminTab] = useState<AdminTab>('whitelist');
+
   // TOTP 狀態
   const [totpConfigured, setTotpConfigured]   = useState<boolean | null>(null);
   const [totpSetup, setTotpSetup]             = useState<{ secret: string; qrCode: string } | null>(null);
@@ -153,6 +157,39 @@ export default function AdminPage() {
 
       <div className="flex-1 max-w-[720px] mx-auto w-full px-3 sm:px-6 py-6 space-y-5">
 
+        {/* B5: Tab nav */}
+        <div className="liquid-glass-thin rounded-full p-1 flex gap-1 w-full sm:w-fit">
+          {([
+            { id: 'whitelist' as AdminTab, label: '白名單', count: list.length },
+            { id: 'blocklist' as AdminTab, label: '封鎖 IP', count: blocked.length },
+            { id: 'totp'      as AdminTab, label: '備援登入', count: totpConfigured ? 1 : 0 },
+          ]).map((t) => {
+            const active = adminTab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setAdminTab(t.id)}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-full text-[13px] font-display transition-all flex items-center justify-center gap-2 ${
+                  active ? 'text-white font-bold' : 'text-tertiary hover:text-secondary font-semibold'
+                }`}
+                style={active ? {
+                  background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue))',
+                  boxShadow:  '0 4px 12px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+                } : undefined}
+              >
+                {t.label}
+                {t.count > 0 && (
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/[0.06]'}`}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 白名單分頁 */}
+        {adminTab === 'whitelist' && (<>
         {/* Stat */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -243,9 +280,10 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 分隔 */}
-        <div className="h-px my-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        </>)}
 
+        {/* 封鎖 IP 分頁 */}
+        {adminTab === 'blocklist' && (<>
         {/* Blocklist 標題 */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -291,9 +329,10 @@ export default function AdminPage() {
             ))}
           </div>
         )}
-        {/* 分隔 */}
-        <div className="h-px my-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        </>)}
 
+        {/* TOTP 分頁 */}
+        {adminTab === 'totp' && (<>
         {/* TOTP 備援登入 */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -370,6 +409,7 @@ export default function AdminPage() {
 
           {totpError && <p className="text-[12px] font-display" style={{ color: 'var(--ios-red)' }}>{totpError}</p>}
         </div>
+        </>)}
 
       </div>
 

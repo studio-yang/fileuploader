@@ -65,6 +65,36 @@
   --shadow-xl: 0 24px 60px rgba(0,0,0,0.50), 0 10px 20px rgba(0,0,0,0.30);
 }
 
+/* ─── B6: Light theme（淺色版） ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --glass-1: rgba(255, 255, 255, 0.75);
+  --glass-2: rgba(255, 255, 255, 0.65);
+  --glass-3: rgba(255, 255, 255, 0.50);
+  --glass-4: rgba(255, 255, 255, 0.35);
+  --glass-edge-top:    rgba(255, 255, 255, 0.85);
+  --glass-edge-bottom: rgba(255, 255, 255, 0.20);
+  --glass-stroke:      rgba(0, 30, 80, 0.10);
+  --glass-stroke-hl:   rgba(0, 30, 80, 0.18);
+
+  --text-primary:   rgba(15, 22, 42, 1.00);
+  --text-secondary: rgba(30, 38, 60, 0.85);
+  --text-tertiary:  rgba(50, 60, 85, 0.65);
+  --text-quaternary:rgba(60, 70, 95, 0.45);
+}
+[data-theme="light"] body {
+  background:
+    radial-gradient(ellipse 65% 50% at 12% 8%,   rgba(46, 125, 255, 0.10), transparent 60%),
+    radial-gradient(ellipse 55% 55% at 88% 18%,  rgba(94, 92, 230, 0.06),  transparent 60%),
+    radial-gradient(ellipse 75% 50% at 50% 48%,  rgba(10, 132, 255, 0.04), transparent 65%),
+    linear-gradient(135deg, #f0f4fa 0%, #e8edf5 35%, #dde4f0 75%, #eaf0f8 100%);
+}
+[data-theme="light"] body::after { opacity: 0.15; }
+[data-theme="light"] body::after { background-image:
+    radial-gradient(circle at 10% 20%, rgba(0,30,80,0.20) 0.5px, transparent 1px),
+    radial-gradient(circle at 60% 40%, rgba(0,30,80,0.20) 0.5px, transparent 1px),
+    radial-gradient(circle at 90% 15%, rgba(0,30,80,0.18) 0.5px, transparent 1px),
+    radial-gradient(circle at 45% 65%, rgba(0,30,80,0.20) 0.5px, transparent 1px); }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -294,6 +324,20 @@ body::after {
   100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(48,209,88,0); }
 }
 .animate-pulse-once { animation: pulseOnce 0.6s ease-out; }
+
+/* B4: confetti — 用 CSS 純 emoji 粒子，不裝套件 */
+@keyframes confettiFall {
+  0%   { transform: translateY(-20vh) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(120vh) rotate(720deg); opacity: 0; }
+}
+.confetti-particle {
+  position: fixed;
+  top: 0;
+  pointer-events: none;
+  z-index: 9998;
+  font-size: 22px;
+  animation: confettiFall linear forwards;
+}
 
 ::selection { background: rgba(46, 125, 255, 0.35); color: var(--text-primary); }
 

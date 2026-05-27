@@ -97,6 +97,32 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
     });
   }, [files, query, sortKey, sortDir]);
 
+  // B1: Keyboard shortcuts（admin 才有刪除權限）—— 放在 filtered 後面
+  useEffect(() => {
+    if (!isAdmin) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !confirmOpen) {
+        e.preventDefault();
+        setSelected(new Set(filtered.map((f) => f.key)));
+      }
+      if (e.key === 'Delete' && selected.size > 0 && !confirmOpen) {
+        e.preventDefault();
+        setConfirmOpen({
+          action: view === 'trash' ? 'permanent' : 'trash',
+          ids: Array.from(selected),
+        });
+      }
+      if (e.key === 'Escape') {
+        if (confirmOpen) { setConfirmOpen(null); setConfirmText(''); }
+        else if (selected.size > 0) setSelected(new Set());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isAdmin, filtered, selected, view, confirmOpen]);
+
   // A9: 複製動畫（pulse effect via state）
   const copy = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -262,6 +288,11 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
               {selected.size > 0 ? `已選 ${selected.size}` : '全選'}
             </span>
           </label>
+          <span className="text-[11px] font-display text-quaternary hidden sm:inline">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px]">Ctrl+A</kbd> 全選 ·
+            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] ml-1">Del</kbd> 刪除 ·
+            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] ml-1">Esc</kbd> 取消
+          </span>
 
           {selected.size > 0 && (
             <div className="flex gap-1.5 ml-auto">
@@ -400,9 +431,16 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
               />
             )}
 
-            {/* A1: lucide-react 具象 icon */}
-            <div className={`liquid-glass-thin ${f.isFolder ? 'liquid-tint-orange' : getFileTint(f.name)} w-12 h-12 rounded-ios-md flex items-center justify-center flex-shrink-0`}>
+            {/* A1: lucide-react icon + B2: 圖片 hover 預覽 */}
+            <div className={`liquid-glass-thin ${f.isFolder ? 'liquid-tint-orange' : getFileTint(f.name)} w-12 h-12 rounded-ios-md flex items-center justify-center flex-shrink-0 relative group/icon`}>
               <FileIconRender name={f.name} isFolder={!!f.isFolder} />
+              {isImageFile(f.name) && f.downloadUrl && (
+                <div className="absolute left-14 top-0 z-30 invisible group-hover/icon:visible transition-all opacity-0 group-hover/icon:opacity-100 pointer-events-none">
+                  <div className="liquid-glass-strong rounded-ios-md p-1.5" style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.50)' }}>
+                    <img src={f.downloadUrl} alt={f.name} className="max-w-[200px] max-h-[200px] rounded-ios-md object-contain"/>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -550,6 +588,11 @@ function FileIconRender({ name, isFolder }: { name: string; isFolder: boolean })
   if (['xls','xlsx','csv'].includes(ext))                   return <FileSpreadsheet size={20} className="text-green-300"/>;
   if (['doc','docx','txt','md'].includes(ext))              return <FileText size={20} className={cls}/>;
   return <FileIcon size={20} className={cls}/>;
+}
+
+function isImageFile(name: string): boolean {
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  return ['jpg','jpeg','png','gif','svg','webp','avif'].includes(ext);
 }
 
 function getFileTint(name: string): string {
