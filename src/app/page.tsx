@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/components/I18nProvider';
 import ProviderSelector from '@/components/upload/ProviderSelector';
 import DropZone         from '@/components/upload/DropZone';
 import FileQueue        from '@/components/upload/FileQueue';
@@ -26,9 +28,11 @@ function loadProvider(): StorageProvider {
 }
 
 export default function Home() {
-  const router  = useRouter();
-  const toast   = useToast();
+  const router   = useRouter();
+  const toast    = useToast();
   const confetti = useConfetti();
+  const t        = useTranslations();
+  const { locale, setLocale } = useLocale();
 
   const [provider,    setProvider]    = useState<StorageProvider>('gdrive');
   const [activeTab,   setActiveTab]   = useState<Tab>('upload');
@@ -122,7 +126,7 @@ export default function Home() {
     const existingNames = new Set(fileItems.filter((f) => f.status === 'success').map((f) => f.name));
     const dupes = files.filter((f) => existingNames.has(f.name));
     if (dupes.length > 0) {
-      toast.info(`⚠ ${dupes.map((f) => f.name).join('、')} 已上傳過，將再次加入佇列`);
+      toast.info(t('toast.duplicateFiles', { files: dupes.map((f) => f.name).join(t('toast.fileSeparator')) }));
     }
     const items: FileItem[] = files.map((file) => ({
       id: generateId(), file,
@@ -131,7 +135,7 @@ export default function Home() {
       status: 'pending', progress: 0,
     }));
     setFileItems((prev) => [...prev, ...items]);
-  }, [fileItems, toast]);
+  }, [fileItems, toast, t]);
 
   async function uploadToGCS(item: FileItem, signal: AbortSignal) {
     const res = await fetch('/api/upload/presigned', {
@@ -196,17 +200,17 @@ export default function Home() {
         }).catch(() => {});
       } catch (err: any) {
         hasError = true;
-        update(item.id, { status: 'error', error: ac.signal.aborted ? '上傳已取消' : err.message });
+        update(item.id, { status: 'error', error: ac.signal.aborted ? t('toast.uploadCancelled') : err.message });
       }
     }
     setUploading(false);
     setListRefresh((n) => n + 1);
     if (!hasError && !ac.signal.aborted) confetti.fire(50);
-  }, [fileItems, provider, update, confetti]);
+  }, [fileItems, provider, update, confetti, t]);
 
   const cancelUpload = () => abortRef.current?.abort();
   const removeFile   = (id: string) => setFileItems((prev) => prev.filter((f) => f.id !== id));
-  const copyLink     = (url: string) => { navigator.clipboard.writeText(url); toast.success('連結已複製'); };
+  const copyLink     = (url: string) => { navigator.clipboard.writeText(url); toast.success(t('toast.linkCopied')); };
 
   /* #16 拖曳重排 */
   const handleReorder = useCallback((newFiles: FileItem[]) => {
@@ -250,7 +254,7 @@ export default function Home() {
         <div className="max-w-[1440px] mx-auto flex items-center gap-2 sm:gap-4 h-16">
 
           {/* Logo */}
-          <a href="/" className="flex items-center gap-3 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" aria-label="回到首頁">
+          <a href="/" className="flex items-center gap-3 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" aria-label={t('header.homeAriaLabel')}>
             <div className="w-9 h-9 rounded-ios-md flex items-center justify-center liquid-lensing flex-shrink-0"
               style={{ background: 'linear-gradient(135deg, var(--tech-blue-500) 0%, var(--ios-blue) 50%, var(--ios-cyan) 100%)', boxShadow: '0 4px 16px rgba(10,132,255,0.40), inset 0 1px 0 rgba(255,255,255,0.30)' }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -258,23 +262,23 @@ export default function Home() {
               </svg>
             </div>
             <span className="font-display font-bold text-[14px] sm:text-[18px] tracking-tight text-primary truncate">
-              <span className="sm:hidden">CHB 檔案傳輸</span>
-              <span className="hidden sm:inline">CHB 外部檔案傳輸平台</span>
+              <span className="sm:hidden">{t('header.titleShort')}</span>
+              <span className="hidden sm:inline">{t('header.titleLong')}</span>
             </span>
           </a>
 
           {/* Tabs */}
           <div className="liquid-glass-thin rounded-full p-1 flex gap-1 ml-1 sm:ml-6 flex-shrink-0">
             {([
-              { id: 'upload'   as Tab, icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10V3"/><path d="M3 6L7 3L11 6"/><path d="M2 11H12"/></svg>, label: '上傳檔案' },
-              { id: 'download' as Tab, icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3V10"/><path d="M3 7L7 10L11 7"/><path d="M2 11H12"/></svg>, label: '下載中心' },
-            ]).map((t) => {
-              const active = activeTab === t.id;
+              { id: 'upload'   as Tab, icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10V3"/><path d="M3 6L7 3L11 6"/><path d="M2 11H12"/></svg>, label: t('tabs.upload') },
+              { id: 'download' as Tab, icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3V10"/><path d="M3 7L7 10L11 7"/><path d="M2 11H12"/></svg>, label: t('tabs.download') },
+            ]).map((tab) => {
+              const active = activeTab === tab.id;
               return (
-                <button key={t.id} onClick={() => setActiveTab(t.id)}
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-full text-[13px] font-display transition-all duration-300 ${active ? 'text-white font-bold' : 'text-tertiary hover:text-secondary font-semibold'}`}
                   style={active ? { background: 'linear-gradient(135deg, var(--tech-blue-500), var(--ios-blue))', boxShadow: '0 4px 12px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.25)' } : undefined}>
-                  {t.icon}<span className="hidden sm:inline">{t.label}</span>
+                  {tab.icon}<span className="hidden sm:inline">{tab.label}</span>
                 </button>
               );
             })}
@@ -285,11 +289,11 @@ export default function Home() {
           {/* Stats pills */}
           {activeTab === 'upload' && (
             <div className="hidden md:flex items-center gap-2">
-              <StatPill label="等待" value={pendingCount}   color="var(--text-tertiary)"
+              <StatPill label={t('stats.pending')}   value={pendingCount}   color="var(--text-tertiary)"
                 onClick={pendingCount > 0 ? () => document.querySelector('[data-status="pending"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined}/>
-              <StatPill label="進行" value={uploadingCount} color="var(--tech-blue-300)" tint="liquid-tint-blue"
+              <StatPill label={t('stats.uploading')} value={uploadingCount} color="var(--tech-blue-300)" tint="liquid-tint-blue"
                 onClick={uploadingCount > 0 ? () => document.querySelector('[data-status="uploading"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined}/>
-              <StatPill label="完成" value={successCount}   color="var(--ios-green)"    tint="liquid-tint-green"
+              <StatPill label={t('stats.success')}   value={successCount}   color="var(--ios-green)"    tint="liquid-tint-green"
                 onClick={successCount > 0 ? () => document.querySelector('[data-status="success"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined}/>
             </div>
           )}
@@ -298,7 +302,7 @@ export default function Home() {
           <button
             onClick={() => setCmdOpen(true)}
             className="hidden sm:flex liquid-glass-thin rounded-full px-3 py-1.5 items-center gap-1.5 ml-1 text-tertiary hover:text-primary transition-colors magnetic"
-            title="指令面板 (⌘K)"
+            title={t('header.cmdPalette')}
           >
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="5" r="4"/><path d="M10 10L7.5 7.5"/></svg>
             <span className="text-[11px] font-display font-semibold">⌘K</span>
@@ -306,10 +310,19 @@ export default function Home() {
 
           <ThemeToggle/>
 
+          {/* Language toggle */}
+          <button
+            onClick={() => setLocale(locale === 'zh-TW' ? 'en' : 'zh-TW')}
+            className="hidden sm:flex liquid-glass-thin rounded-full px-3 py-1.5 items-center ml-1 flex-shrink-0 text-tertiary hover:text-primary transition-colors magnetic"
+            title={locale === 'zh-TW' ? 'Switch to English' : '切換到繁體中文'}
+          >
+            <span className="text-[11px] font-display font-semibold">{t('header.langToggle')}</span>
+          </button>
+
           {/* Mobile hamburger */}
           <button onClick={() => setMenuOpen((v) => !v)}
             className="sm:hidden liquid-glass-thin rounded-full p-2 ml-1 flex-shrink-0 text-tertiary hover:text-primary transition-colors"
-            aria-label="開啟選單">
+            aria-label={t('header.openMenu')}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M2 4h10M2 7h10M2 10h10"/>
             </svg>
@@ -322,7 +335,7 @@ export default function Home() {
               <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="6" cy="6" r="2"/><path d="M6 1v2M6 9v2M1 6h2M9 6h2M2.5 2.5l1.4 1.4M8.1 8.1l1.4 1.4M2.5 9.5l1.4-1.4M8.1 3.9l1.4-1.4"/>
               </svg>
-              <span className="text-[11px] font-display font-semibold hidden sm:inline">白名單</span>
+              <span className="text-[11px] font-display font-semibold hidden sm:inline">{t('header.whitelist')}</span>
             </button>
           )}
 
@@ -332,7 +345,7 @@ export default function Home() {
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 2H2v8h3"/><path d="M8 8.5L10.5 6 8 3.5"/><path d="M10.5 6H5"/>
             </svg>
-            <span className="text-[11px] font-display font-semibold ml-1">登出</span>
+            <span className="text-[11px] font-display font-semibold ml-1">{t('header.logout')}</span>
           </button>
 
           <div className="hidden sm:flex liquid-glass-thin liquid-tint-green rounded-full px-3 py-1.5 items-center gap-1.5 ml-2 flex-shrink-0">
@@ -346,22 +359,26 @@ export default function Home() {
           <div className="sm:hidden absolute top-16 right-3 z-50 liquid-glass-strong rounded-ios-md p-2 min-w-[180px] animate-ios-pop space-y-1" style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.45)' }}>
             <button onClick={() => { setMenuOpen(false); setCmdOpen(true); }}
               className="w-full text-left px-3 py-2 rounded-md text-[13px] font-display font-medium text-primary hover:bg-white/[0.05] transition-colors">
-              🔍 指令面板 (⌘K)
+              🔍 {t('header.cmdPalette')}
             </button>
             {isAdmin && (
               <button onClick={() => { setMenuOpen(false); router.push('/admin'); }}
                 className="w-full text-left px-3 py-2 rounded-md text-[13px] font-display font-medium text-primary hover:bg-white/[0.05] transition-colors">
-                ⚙ 白名單管理
+                ⚙ {t('header.adminMenu')}
               </button>
             )}
+            <button onClick={() => { setMenuOpen(false); setLocale(locale === 'zh-TW' ? 'en' : 'zh-TW'); }}
+              className="w-full text-left px-3 py-2 rounded-md text-[13px] font-display font-medium text-primary hover:bg-white/[0.05] transition-colors">
+              🌐 {t('header.langToggle')}
+            </button>
             <button onClick={() => { setMenuOpen(false); logout(); }}
               className="w-full text-left px-3 py-2 rounded-md text-[13px] font-display font-medium text-primary hover:bg-white/[0.05] transition-colors">
-              ↩ 登出
+              ↩ {t('header.logout')}
             </button>
             <div className="border-t border-white/[0.06] my-1"/>
             <div className="px-3 py-1.5 text-[11px] font-display text-tertiary flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ios-green)' }}/>
-              HTTPS 加密連線
+              {t('header.httpsEncrypted')}
             </div>
           </div>
         )}
@@ -375,41 +392,41 @@ export default function Home() {
           {/* ── Left Sidebar — Mobile: order-2（下方），lg: order-1（左側）── */}
           <aside className="w-full lg:w-[280px] flex-shrink-0 lg:sticky lg:top-24 space-y-4 order-2 lg:order-1">
             <div className="liquid-glass-strong liquid-lensing rounded-ios-xl p-5">
-              <SideLabel>儲存目標</SideLabel>
+              <SideLabel>{t('sidebar.storage')}</SideLabel>
               <ProviderSelector selected={provider} onChange={handleProviderChange}/>
             </div>
 
             <div className="liquid-glass liquid-lensing rounded-ios-xl p-5 space-y-3">
-              <SideLabel>說明</SideLabel>
+              <SideLabel>{t('sidebar.description')}</SideLabel>
               {provider === 'gdrive' && (
                 <div className="space-y-2">
-                  <InfoRow icon="✓" color="var(--ios-green)">瀏覽器直傳，不受 Vercel 限制</InfoRow>
-                  <InfoRow icon="✓" color="var(--ios-green)">8 MB 分塊，支援 1 GB+ 大檔</InfoRow>
-                  <InfoRow icon="✓" color="var(--ios-green)">上傳後自動設定公開下載權限</InfoRow>
+                  <InfoRow icon="✓" color="var(--ios-green)">{t('sidebar.gdrive.line1')}</InfoRow>
+                  <InfoRow icon="✓" color="var(--ios-green)">{t('sidebar.gdrive.line2')}</InfoRow>
+                  <InfoRow icon="✓" color="var(--ios-green)">{t('sidebar.gdrive.line3')}</InfoRow>
                 </div>
               )}
               {provider === 'github' && (
                 <div className="space-y-2">
-                  <InfoRow icon="✓" color="var(--ios-green)">附掛至 GitHub Releases</InfoRow>
-                  <InfoRow icon="!" color="var(--ios-orange)">建議 &lt; 4 MB（Vercel 免費限制）</InfoRow>
-                  <InfoRow icon="!" color="var(--ios-orange)">單檔上限 2 GB</InfoRow>
+                  <InfoRow icon="✓" color="var(--ios-green)">{t('sidebar.github.line1')}</InfoRow>
+                  <InfoRow icon="!" color="var(--ios-orange)">{t('sidebar.github.line2')}</InfoRow>
+                  <InfoRow icon="!" color="var(--ios-orange)">{t('sidebar.github.line3')}</InfoRow>
                 </div>
               )}
               {provider === 'gcs' && (
                 <div className="space-y-2">
-                  <InfoRow icon="✓" color="var(--ios-green)">Presigned URL 直傳到 GCS</InfoRow>
-                  <InfoRow icon="✓" color="var(--ios-green)">下載連結有效 7 天</InfoRow>
+                  <InfoRow icon="✓" color="var(--ios-green)">{t('sidebar.gcs.line1')}</InfoRow>
+                  <InfoRow icon="✓" color="var(--ios-green)">{t('sidebar.gcs.line2')}</InfoRow>
                 </div>
               )}
             </div>
 
             {activeTab === 'upload' && fileItems.length > 0 && (
               <div className="liquid-glass liquid-lensing rounded-ios-xl p-5 space-y-3">
-                <SideLabel>上傳統計</SideLabel>
+                <SideLabel>{t('sidebar.uploadStats')}</SideLabel>
                 <div className="grid grid-cols-3 gap-2">
-                  <MiniStat label="等待" value={pendingCount}   color="var(--text-tertiary)"/>
-                  <MiniStat label="進行" value={uploadingCount} color="var(--tech-blue-300)"/>
-                  <MiniStat label="完成" value={successCount}   color="var(--ios-green)"/>
+                  <MiniStat label={t('stats.pending')}   value={pendingCount}   color="var(--text-tertiary)"/>
+                  <MiniStat label={t('stats.uploading')} value={uploadingCount} color="var(--tech-blue-300)"/>
+                  <MiniStat label={t('stats.success')}   value={successCount}   color="var(--ios-green)"/>
                 </div>
               </div>
             )}
@@ -426,7 +443,7 @@ export default function Home() {
                 {uploading && batchTotal > 0 && (
                   <div className="liquid-glass liquid-lensing rounded-ios-lg px-5 py-4 space-y-2">
                     <div className="flex items-center justify-between text-[12px] font-display">
-                      <span className="text-tertiary">批次進度</span>
+                      <span className="text-tertiary">{t('upload.batchProgress')}</span>
                       <span className="font-semibold" style={{ color: 'var(--tech-blue-300)' }}>{batchProgress}%</span>
                     </div>
                     <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -442,7 +459,7 @@ export default function Home() {
                       />
                     </div>
                     <p className="text-[11px] text-quaternary font-display">
-                      {uploadingCount} 個上傳中 · {successCount} 個完成 / 共 {batchTotal} 個
+                      {t('upload.batchStatus', { uploading: uploadingCount, success: successCount, total: batchTotal })}
                     </p>
                   </div>
                 )}
@@ -460,12 +477,14 @@ export default function Home() {
                         boxShadow: '0 8px 28px rgba(10,132,255,0.45), inset 0 1.5px 0 rgba(255,255,255,0.30)',
                       } : undefined}
                     >
-                      {uploading ? `上傳中 · ${uploadingCount} 個進行中` : `開始上傳 ${pendingCount} 個檔案`}
+                      {uploading
+                        ? t('upload.uploadingActive', { count: uploadingCount })
+                        : t('upload.startUpload', { count: pendingCount })}
                     </button>
                     {uploading && (
                       <button onClick={cancelUpload}
                         className="liquid-glass liquid-tint-red px-6 py-4 rounded-ios-lg font-display font-semibold text-[14px] liquid-hover">
-                        取消
+                        {t('upload.cancel')}
                       </button>
                     )}
                   </div>
@@ -481,8 +500,8 @@ export default function Home() {
                         <path d="M14 21V7"/><path d="M7 13L14 7L21 13"/><path d="M5 21H23"/>
                       </svg>
                     </div>
-                    <p className="text-secondary text-[15px] font-display">將檔案拖放到上方區域，或點擊選取</p>
-                    <p className="text-tertiary text-[13px] mt-1 font-display">支援任何格式 · 單檔最大 5 GB</p>
+                    <p className="text-secondary text-[15px] font-display">{t('upload.emptyTitle')}</p>
+                    <p className="text-tertiary text-[13px] mt-1 font-display">{t('upload.emptySubtitle')}</p>
                   </div>
                 )}
               </>
@@ -498,11 +517,11 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer className="max-w-[1440px] mx-auto w-full px-3 sm:px-6 lg:px-10 pb-4 lg:pb-6">
         <div className="liquid-glass rounded-2xl sm:rounded-full py-3 px-4 sm:px-6 flex items-center justify-between flex-wrap gap-2">
-          <p className="text-[11px] text-tertiary font-display">FileUploader Designed By CHB IT Department 176752 © 2026 · Next.js + Vercel</p>
+          <p className="text-[11px] text-tertiary font-display">{t('footer.copyright')}</p>
           <div className="flex items-center gap-4 text-[11px] font-display text-tertiary">
             <Indicator color="var(--ios-green)"     label="HTTPS"/>
-            <Indicator color="var(--tech-blue-300)" label="加密傳輸"/>
-            <Indicator color="var(--ios-cyan)"      label="Vercel Edge"/>
+            <Indicator color="var(--tech-blue-300)" label={t('footer.encrypted')}/>
+            <Indicator color="var(--ios-cyan)"      label={t('footer.edge')}/>
           </div>
         </div>
       </footer>
@@ -515,7 +534,7 @@ function StatPill({ label, value, color, tint = '', onClick }: {
   label: string; value: number; color: string; tint?: string; onClick?: () => void;
 }) {
   return (
-    <button onClick={onClick} disabled={!onClick} title={onClick ? `捲動到「${label}」` : undefined}
+    <button onClick={onClick} disabled={!onClick}
       className={`liquid-glass-thin ${tint} rounded-full px-3 py-1.5 flex items-center gap-2 transition-all ${onClick ? 'hover:scale-[1.05] cursor-pointer' : 'cursor-default'}`}>
       <span className="text-[18px] font-display font-bold" style={{ color }}>{value}</span>
       <span className="text-[11px] text-tertiary font-display">{label}</span>

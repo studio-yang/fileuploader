@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useTranslations } from 'next-intl';
 import { formatBytes } from '@/lib/utils';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function DropZone({ onFiles, disabled }: Props) {
+  const t = useTranslations('dropzone');
   const [dragActive, setDragActive] = useState(false);
 
   const onDrop = useCallback((accepted: File[]) => {
@@ -75,34 +77,34 @@ export default function DropZone({ onFiles, disabled }: Props) {
         className="font-display font-bold text-[20px] sm:text-[28px] mb-2 tracking-tight"
         style={{ color: isActive ? 'var(--tech-blue-200)' : 'var(--text-primary)' }}
       >
-        {isActive ? '放開以選取' : '拖放檔案到這裡'}
+        {isActive ? t('dropActive') : t('dropIdle')}
       </h3>
       <p className="text-secondary text-[13px] sm:text-[15px] mb-4 sm:mb-7 font-display">
-        或點擊選取 · 支援多檔同時上傳
+        {t('subtitle')}
       </p>
 
       {/* File type pills */}
       <div className="flex gap-2 flex-wrap justify-center max-w-md">
-        {[
-          { label: '影片',   color: 'var(--ios-purple)' },
-          { label: '壓縮包', color: 'var(--ios-orange)' },
-          { label: '文件',   color: 'var(--tech-blue-300)' },
-          { label: '圖片',   color: 'var(--ios-green)' },
-          { label: '其他',   color: 'var(--ios-cyan)' },
-        ].map((t) => (
+        {([
+          { key: 'typeVideo'   as const, color: 'var(--ios-purple)' },
+          { key: 'typeArchive' as const, color: 'var(--ios-orange)' },
+          { key: 'typeDoc'     as const, color: 'var(--tech-blue-300)' },
+          { key: 'typeImage'   as const, color: 'var(--ios-green)' },
+          { key: 'typeOther'   as const, color: 'var(--ios-cyan)' },
+        ]).map((item) => (
           <span
-            key={t.label}
+            key={item.key}
             className="liquid-glass-thin px-3.5 py-1.5 rounded-full text-[13px] font-display font-medium flex items-center gap-1.5"
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: t.color }} />
-            <span className="text-secondary">{t.label}</span>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: item.color }} />
+            <span className="text-secondary">{t(item.key)}</span>
           </span>
         ))}
       </div>
 
       {/* Size hint */}
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 liquid-glass-thin px-3 py-1 rounded-full text-[11px] font-mono text-tertiary">
-        最大 {formatBytes(5 * 1024 * 1024 * 1024)} / 檔
+        {t('maxSize', { size: formatBytes(5 * 1024 * 1024 * 1024) })}
       </div>
     </div>
   );

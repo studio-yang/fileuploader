@@ -1,0 +1,141 @@
+{
+  "header": {
+    "titleShort": "CHB 檔案傳輸",
+    "titleLong": "CHB 外部檔案傳輸平台",
+    "homeAriaLabel": "回到首頁",
+    "cmdPalette": "指令面板 (⌘K)",
+    "openMenu": "開啟選單",
+    "whitelist": "白名單",
+    "logout": "登出",
+    "langToggle": "EN",
+    "httpsEncrypted": "HTTPS 加密連線",
+    "adminMenu": "白名單管理"
+  },
+  "tabs": {
+    "upload": "上傳檔案",
+    "download": "下載中心"
+  },
+  "stats": {
+    "pending": "等待",
+    "uploading": "進行",
+    "success": "完成",
+    "scrollTo": "捲動到「{label}」"
+  },
+  "sidebar": {
+    "storage": "儲存目標",
+    "description": "說明",
+    "uploadStats": "上傳統計",
+    "gdrive": {
+      "line1": "瀏覽器直傳，不受 Vercel 限制",
+      "line2": "8 MB 分塊，支援 1 GB+ 大檔",
+      "line3": "上傳後自動設定公開下載權限"
+    },
+    "github": {
+      "line1": "附掛至 GitHub Releases",
+      "line2": "建議 < 4 MB（Vercel 免費限制）",
+      "line3": "單檔上限 2 GB"
+    },
+    "gcs": {
+      "line1": "Presigned URL 直傳到 GCS",
+      "line2": "下載連結有效 7 天"
+    }
+  },
+  "upload": {
+    "batchProgress": "批次進度",
+    "batchStatus": "{uploading} 個上傳中 · {success} 個完成 / 共 {total} 個",
+    "startUpload": "開始上傳 {count} 個檔案",
+    "uploadingActive": "上傳中 · {count} 個進行中",
+    "cancel": "取消",
+    "emptyTitle": "將檔案拖放到上方區域，或點擊選取",
+    "emptySubtitle": "支援任何格式 · 單檔最大 5 GB"
+  },
+  "dropzone": {
+    "dropActive": "放開以選取",
+    "dropIdle": "拖放檔案到這裡",
+    "subtitle": "或點擊選取 · 支援多檔同時上傳",
+    "maxSize": "最大 {size} / 檔",
+    "typeVideo": "影片",
+    "typeArchive": "壓縮包",
+    "typeDoc": "文件",
+    "typeImage": "圖片",
+    "typeOther": "其他"
+  },
+  "fileQueue": {
+    "title": "上傳佇列",
+    "fileCount": "{count} 個檔案",
+    "statusPending": "等待中",
+    "statusUploading": "上傳中",
+    "statusSuccess": "已完成",
+    "statusError": "失敗",
+    "copyLink": "複製連結",
+    "remove": "移除",
+    "dragHandle": "拖曳排序",
+    "downloadLink": "下載連結",
+    "ctxCopyLink": "複製連結",
+    "ctxRemove": "從佇列移除",
+    "ctxUploading": "上傳中，請稍候",
+    "etaRemaining": "剩 {eta}"
+  },
+  "fileList": {
+    "title": "下載中心",
+    "trashTitle": "垃圾桶",
+    "back": "← 返回",
+    "itemCount": "{count} 個項目",
+    "searchPlaceholder": "搜尋檔名…",
+    "sortDate": "時間",
+    "sortName": "名稱",
+    "sortSize": "大小",
+    "selectAll": "全選",
+    "selectedCount": "已選 {count}",
+    "moveToTrash": "移到垃圾桶",
+    "restore": "還原",
+    "permanentDelete": "永久刪除",
+    "trashHasItems": "{count} 個項目可還原或永久刪除",
+    "trashEmpty": "尚無已刪除的檔案",
+    "emptyTrashTitle": "垃圾桶是空的",
+    "emptyTitle": "此儲存體尚無檔案",
+    "emptyTrashSubtitle": "已刪除的檔案會出現在這裡",
+    "emptySubtitle": "把第一份檔案放上來開始使用吧",
+    "uploadFirst": "立刻上傳第一個檔案",
+    "noSearchResult": "找不到「{query}」",
+    "copyLink": "複製",
+    "copied": "已複製",
+    "download": "下載",
+    "gridView": "切換格狀檢視",
+    "listView": "切換列表檢視",
+    "pinToTop": "釘選到頂端",
+    "unpin": "取消釘選",
+    "ctxShare": "分享 / QR Code",
+    "shareTitle": "分享檔案",
+    "shareDownloadLink": "下載連結",
+    "shareCopyLink": "複製連結",
+    "shareClose": "關閉",
+    "confirmTrashTitle": "移到垃圾桶？",
+    "confirmRestoreTitle": "還原 {count} 個項目？",
+    "confirmDeleteTitle": "永久刪除（無法復原）",
+    "confirmTrashBody": "將 <bold>{count}</bold> 個項目移到垃圾桶，隨時可還原。",
+    "confirmRestoreBody": "將 <bold>{count}</bold> 個項目放回原位置。",
+    "confirmDeleteBody": "這 <bold>{count}</bold> 個項目將從伺服器徹底消失，<danger>無法復原</danger>。",
+    "confirmDeleteInput": "輸入 <code>{word}</code> 確認：",
+    "confirmDeleteWord": "刪除",
+    "confirmDeletePlaceholder": "刪除",
+    "confirmCancel": "取消",
+    "confirmOk": "確定",
+    "confirmProcessing": "處理中…"
+  },
+  "toast": {
+    "linkCopied": "連結已複製",
+    "uploadCancelled": "上傳已取消",
+    "movedToTrash": "已移到垃圾桶 · {count} 個項目",
+    "undoRestored": "已復原",
+    "restoredCount": "已還原 {count} 個項目",
+    "deletedCount": "已永久刪除 {count} 個項目",
+    "duplicateFiles": "⚠ {files} 已上傳過，將再次加入佇列",
+    "fileSeparator": "、"
+  },
+  "footer": {
+    "copyright": "FileUploader Designed By CHB IT Department 176752 © 2026 · Next.js + Vercel",
+    "encrypted": "加密傳輸",
+    "edge": "Vercel Edge"
+  }
+}

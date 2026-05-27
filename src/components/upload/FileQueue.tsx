@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { FileItem } from '@/lib/types';
 import { formatBytes, formatSpeed, formatEta } from '@/lib/utils';
 import {
@@ -25,15 +26,16 @@ interface CtxMenu {
   status: FileItem['status']; downloadUrl?: string;
 }
 
-const STATUS_CONFIG = {
-  pending:   { label: '等待中', color: 'var(--text-tertiary)', tint: '' },
-  uploading: { label: '上傳中', color: 'var(--tech-blue-300)', tint: 'liquid-tint-blue' },
-  success:   { label: '已完成', color: 'var(--ios-green)',     tint: 'liquid-tint-green' },
-  error:     { label: '失敗',   color: 'var(--ios-red)',       tint: 'liquid-tint-red' },
-};
-
 export default function FileQueue({ files, onRemove, onCopy, onReorder }: Props) {
+  const t = useTranslations('fileQueue');
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
+
+  const STATUS_CONFIG = {
+    pending:   { label: t('statusPending'),   color: 'var(--text-tertiary)', tint: '' },
+    uploading: { label: t('statusUploading'), color: 'var(--tech-blue-300)', tint: 'liquid-tint-blue' },
+    success:   { label: t('statusSuccess'),   color: 'var(--ios-green)',     tint: 'liquid-tint-green' },
+    error:     { label: t('statusError'),     color: 'var(--ios-red)',       tint: 'liquid-tint-red' },
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -68,9 +70,9 @@ export default function FileQueue({ files, onRemove, onCopy, onReorder }: Props)
               <span className="w-1 h-5 rounded-full" style={{
                 background: 'linear-gradient(180deg, var(--tech-blue-300), var(--ios-cyan))',
               }}/>
-              <span className="font-display font-semibold text-[17px] tracking-tight">上傳佇列</span>
+              <span className="font-display font-semibold text-[17px] tracking-tight">{t('title')}</span>
             </div>
-            <span className="text-[13px] text-tertiary font-display">{files.length} 個檔案</span>
+            <span className="text-[13px] text-tertiary font-display">{t('fileCount', { count: files.length })}</span>
           </div>
 
           <SortableContext items={files.map((f) => f.id)} strategy={verticalListSortingStrategy}>
@@ -79,6 +81,8 @@ export default function FileQueue({ files, onRemove, onCopy, onReorder }: Props)
                 key={f.id}
                 f={f}
                 idx={idx}
+                statusConfig={STATUS_CONFIG}
+                t={t}
                 onRemove={onRemove}
                 onCopy={onCopy}
                 onContextMenu={(e) => {
@@ -99,13 +103,13 @@ export default function FileQueue({ files, onRemove, onCopy, onReorder }: Props)
           onClick={(e) => e.stopPropagation()}
         >
           {ctxMenu.status === 'success' && ctxMenu.downloadUrl && (
-            <CtxItem icon="⎘" label="複製連結" onClick={() => { onCopy(ctxMenu.downloadUrl!); setCtxMenu(null); }} />
+            <CtxItem icon="⎘" label={t('ctxCopyLink')} onClick={() => { onCopy(ctxMenu.downloadUrl!); setCtxMenu(null); }} />
           )}
           {(ctxMenu.status === 'pending' || ctxMenu.status === 'error') && (
-            <CtxItem icon="✕" label="從佇列移除" danger onClick={() => { onRemove(ctxMenu.id); setCtxMenu(null); }} />
+            <CtxItem icon="✕" label={t('ctxRemove')} danger onClick={() => { onRemove(ctxMenu.id); setCtxMenu(null); }} />
           )}
           {ctxMenu.status === 'uploading' && (
-            <CtxItem icon="⌛" label="上傳中，請稍候" onClick={() => setCtxMenu(null)} />
+            <CtxItem icon="⌛" label={t('ctxUploading')} onClick={() => setCtxMenu(null)} />
           )}
         </div>
       )}
@@ -114,15 +118,19 @@ export default function FileQueue({ files, onRemove, onCopy, onReorder }: Props)
 }
 
 /* ── 可拖曳列 ── */
-function SortableRow({ f, idx, onRemove, onCopy, onContextMenu }: {
+type StatusConfig = Record<FileItem['status'], { label: string; color: string; tint: string }>;
+
+function SortableRow({ f, idx, statusConfig, t, onRemove, onCopy, onContextMenu }: {
   f: FileItem; idx: number;
+  statusConfig: StatusConfig;
+  t: ReturnType<typeof useTranslations<'fileQueue'>>;
   onRemove: (id: string) => void;
   onCopy:   (url: string) => void;
   onContextMenu: (e: React.MouseEvent) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: f.id });
-  const cfg = STATUS_CONFIG[f.status];
+  const cfg = statusConfig[f.status];
 
   return (
     <div
@@ -146,8 +154,8 @@ function SortableRow({ f, idx, onRemove, onCopy, onContextMenu }: {
             {...attributes}
             {...listeners}
             className="flex-shrink-0 mt-2 cursor-grab active:cursor-grabbing text-quaternary hover:text-tertiary touch-none select-none"
-            title="拖曳排序"
-            aria-label="拖曳排序"
+            title={t('dragHandle')}
+            aria-label={t('dragHandle')}
           >
             <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
               <circle cx="2.5" cy="2.5"  r="1.5"/><circle cx="7.5" cy="2.5"  r="1.5"/>
@@ -185,7 +193,7 @@ function SortableRow({ f, idx, onRemove, onCopy, onContextMenu }: {
                 <span className="text-quaternary">·</span>
                 <span style={{ color: cfg.color }} className="font-mono font-medium">{formatSpeed(f.speed)}</span>
                 {f.eta !== undefined && (
-                  <><span className="text-quaternary">·</span><span>剩 {formatEta(f.eta)}</span></>
+                  <><span className="text-quaternary">·</span><span>{t('etaRemaining', { eta: formatEta(f.eta) })}</span></>
                 )}
               </>
             )}
@@ -199,14 +207,14 @@ function SortableRow({ f, idx, onRemove, onCopy, onContextMenu }: {
               onClick={() => onCopy(f.downloadUrl!)}
               className="liquid-glass-thin liquid-tint-green px-3 py-1.5 rounded-full text-[12px] font-display font-medium liquid-hover"
             >
-              複製連結
+              {t('copyLink')}
             </button>
           )}
           {(f.status === 'pending' || f.status === 'error') && (
             <button
               onClick={() => onRemove(f.id)}
               className="liquid-glass-thin w-8 h-8 rounded-full flex items-center justify-center text-tertiary liquid-hover"
-              aria-label="移除"
+              aria-label={t('remove')}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M3 3L9 9M9 3L3 9"/>
@@ -242,7 +250,7 @@ function SortableRow({ f, idx, onRemove, onCopy, onContextMenu }: {
       {f.status === 'success' && f.downloadUrl && (
         <div className="mt-3 p-3 rounded-ios-md liquid-glass-thin liquid-tint-green">
           <div className="text-[10px] font-display font-medium text-ios-green mb-1 flex items-center gap-1.5 uppercase tracking-wider">
-            <span className="w-1 h-1 rounded-full bg-current"/> 下載連結
+            <span className="w-1 h-1 rounded-full bg-current"/> {t('downloadLink')}
           </div>
           <a href={f.downloadUrl} target="_blank" rel="noopener noreferrer"
             className="text-[12px] text-ios-green hover:underline break-all font-mono">

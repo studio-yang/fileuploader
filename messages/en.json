@@ -1,0 +1,141 @@
+{
+  "header": {
+    "titleShort": "CHB File Transfer",
+    "titleLong": "CHB External File Transfer",
+    "homeAriaLabel": "Home",
+    "cmdPalette": "Command Palette (⌘K)",
+    "openMenu": "Open Menu",
+    "whitelist": "Whitelist",
+    "logout": "Logout",
+    "langToggle": "中文",
+    "httpsEncrypted": "HTTPS Encrypted",
+    "adminMenu": "Admin Panel"
+  },
+  "tabs": {
+    "upload": "Upload",
+    "download": "Downloads"
+  },
+  "stats": {
+    "pending": "Pending",
+    "uploading": "Active",
+    "success": "Done",
+    "scrollTo": "Scroll to {label}"
+  },
+  "sidebar": {
+    "storage": "Storage Target",
+    "description": "Info",
+    "uploadStats": "Upload Stats",
+    "gdrive": {
+      "line1": "Direct browser upload, no Vercel limits",
+      "line2": "8 MB chunks, supports files over 1 GB",
+      "line3": "Auto-sets public download permission"
+    },
+    "github": {
+      "line1": "Attached to GitHub Releases",
+      "line2": "Recommend < 4 MB (Vercel free tier)",
+      "line3": "Max 2 GB per file"
+    },
+    "gcs": {
+      "line1": "Direct upload via Presigned URL to GCS",
+      "line2": "Download link valid for 7 days"
+    }
+  },
+  "upload": {
+    "batchProgress": "Batch Progress",
+    "batchStatus": "{uploading} uploading · {success} done / {total} total",
+    "startUpload": "Upload {count} Files",
+    "uploadingActive": "Uploading · {count} active",
+    "cancel": "Cancel",
+    "emptyTitle": "Drop files above or click to select",
+    "emptySubtitle": "Any format supported · Max 5 GB per file"
+  },
+  "dropzone": {
+    "dropActive": "Release to select",
+    "dropIdle": "Drop files here",
+    "subtitle": "Or click to select · Multiple files supported",
+    "maxSize": "Max {size} / file",
+    "typeVideo": "Video",
+    "typeArchive": "Archive",
+    "typeDoc": "Document",
+    "typeImage": "Image",
+    "typeOther": "Other"
+  },
+  "fileQueue": {
+    "title": "Upload Queue",
+    "fileCount": "{count} files",
+    "statusPending": "Pending",
+    "statusUploading": "Uploading",
+    "statusSuccess": "Complete",
+    "statusError": "Failed",
+    "copyLink": "Copy Link",
+    "remove": "Remove",
+    "dragHandle": "Drag to reorder",
+    "downloadLink": "Download Link",
+    "ctxCopyLink": "Copy Link",
+    "ctxRemove": "Remove from Queue",
+    "ctxUploading": "Uploading, please wait",
+    "etaRemaining": "{eta} left"
+  },
+  "fileList": {
+    "title": "Downloads",
+    "trashTitle": "Trash",
+    "back": "← Back",
+    "itemCount": "{count} items",
+    "searchPlaceholder": "Search files…",
+    "sortDate": "Date",
+    "sortName": "Name",
+    "sortSize": "Size",
+    "selectAll": "Select All",
+    "selectedCount": "{count} selected",
+    "moveToTrash": "Move to Trash",
+    "restore": "Restore",
+    "permanentDelete": "Delete Permanently",
+    "trashHasItems": "{count} items can be restored or deleted",
+    "trashEmpty": "No deleted files",
+    "emptyTrashTitle": "Trash is Empty",
+    "emptyTitle": "No files in this storage",
+    "emptyTrashSubtitle": "Deleted files will appear here",
+    "emptySubtitle": "Upload your first file to get started",
+    "uploadFirst": "Upload First File",
+    "noSearchResult": "No results for \"{query}\"",
+    "copyLink": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "gridView": "Switch to Grid View",
+    "listView": "Switch to List View",
+    "pinToTop": "Pin to Top",
+    "unpin": "Unpin",
+    "ctxShare": "Share / QR Code",
+    "shareTitle": "Share File",
+    "shareDownloadLink": "Download Link",
+    "shareCopyLink": "Copy Link",
+    "shareClose": "Close",
+    "confirmTrashTitle": "Move to Trash?",
+    "confirmRestoreTitle": "Restore {count} items?",
+    "confirmDeleteTitle": "Delete Permanently (irreversible)",
+    "confirmTrashBody": "Move <bold>{count}</bold> items to Trash. You can restore them anytime.",
+    "confirmRestoreBody": "Restore <bold>{count}</bold> items to their original location.",
+    "confirmDeleteBody": "These <bold>{count}</bold> items will be permanently removed. <danger>This cannot be undone.</danger>",
+    "confirmDeleteInput": "Type <code>{word}</code> to confirm:",
+    "confirmDeleteWord": "delete",
+    "confirmDeletePlaceholder": "delete",
+    "confirmCancel": "Cancel",
+    "confirmOk": "Confirm",
+    "confirmProcessing": "Processing…"
+  },
+  "toast": {
+    "linkCopied": "Link copied",
+    "uploadCancelled": "Upload cancelled",
+    "movedToTrash": "Moved to Trash · {count} items",
+    "undoRestored": "Restored",
+    "restoredCount": "Restored {count} items",
+    "deletedCount": "Permanently deleted {count} items",
+    "duplicateFiles": "⚠ {files} already uploaded, adding again",
+    "fileSeparator": ", "
+  },
+  "footer": {
+    "copyright": "FileUploader Designed By CHB IT Department 176752 © 2026 · Next.js + Vercel",
+    "encrypted": "Encrypted",
+    "edge": "Vercel Edge"
+  }
+}
