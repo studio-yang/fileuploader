@@ -103,6 +103,7 @@ export default function Home() {
     setUploading(true);
     const ac = new AbortController();
     abortRef.current = ac;
+    let hasError = false;
     for (const item of pending) {
       if (ac.signal.aborted) break;
       update(item.id, { status: 'uploading', progress: 0 });
@@ -116,14 +117,13 @@ export default function Home() {
         }
         update(item.id, { status: 'success', progress: 100, downloadUrl, uploadedAt: Date.now() });
       } catch (err: any) {
+        hasError = true;
         update(item.id, { status: 'error', error: ac.signal.aborted ? '上傳已取消' : err.message });
       }
     }
     setUploading(false);
     setListRefresh((n) => n + 1);
-    // B4: 全部成功時放煙火
-    const allOk = pending.every((p) => fileItems.find((f) => f.id === p.id)?.status !== 'error');
-    if (allOk && !ac.signal.aborted) confetti.fire(50);
+    if (!hasError && !ac.signal.aborted) confetti.fire(50);
   }, [fileItems, provider, update, confetti]);
 
   const cancelUpload  = () => abortRef.current?.abort();
