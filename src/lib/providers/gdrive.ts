@@ -1,39 +1,36 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-// ── Service Account auth（永不過期）─────────────────────────────────────────
-// 取代原本的 OAuth Refresh Token 機制，徹底解決 401 過期問題。
-// env var: GOOGLE_DRIVE_SA_KEY（Service Account JSON 內容，base64 編碼）
-export function getAuthClient() {
-  const keyBase64 = process.env.GOOGLE_DRIVE_SA_KEY || '';
-  if (!keyBase64) throw new Error('GOOGLE_DRIVE_SA_KEY 未設定（請至 Vercel Env Var 設定 Service Account JSON 的 base64 內容）');
-  const credentials = JSON.parse(Buffer.from(keyBase64, 'base64').toString('utf-8'));
-  return new google.auth.JWT({
-    email:  credentials.client_email,
-    key:    credentials.private_key,
-    scopes: ['https://www.googleapis.com/auth/drive'],
-  });
+// ── OAuth2 auth（後端用） ───────────────────────────────────────────────────
+function getOAuth2Client() {
+  const oauth2 = new google.auth.OAuth2(
+    process.env.GOOGLE_DRIVE_CLIENT_ID,
+    process.env.GOOGLE_DRIVE_CLIENT_SECRET,
+    'urn:ietf:wg:oauth:2.0:oob',
+  );
+  oauth2.setCredentials({ refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN });
+  return oauth2;
 }
 
 function getDriveClient() {
-  return google.drive({ version: 'v3', auth: getAuthClient() });
+  return google.drive({ version: 'v3', auth: getOAuth2Client() });
 }
 
 /**
- * 取得 Service Account Access Token（供前端 Resumable Upload 使用）
- * 透過 JWT 自動換 access_token，永不過期。
+ * 取得 OAuth Access Token（供前端 Resumable Upload 使用）
  */
 export async function getServiceAccountAccessToken(): Promise<{
   accessToken: string;
   expiresAt:   number;
   folderId:    string;
 }> {
-  const auth = getAuthClient();
-  const { access_token, expiry_date } = await auth.authorize();
-  if (!access_token) throw new Error('無法取得 Service Account Access Token');
+  const oauth2 = getOAuth2Client();
+  const { token, res } = await oauth2.getAccessToken();
+  if (!token) throw new Error('無法取得 OAuth Access Token');
+  const expiresIn = (res?.data as any)?.expires_in ?? 3600;
   return {
-    accessToken: access_token,
-    expiresAt:   expiry_date ?? Date.now() + 3600 * 1000,
+    accessToken: token,
+    expiresAt:   Date.now() + expiresIn * 1000,
     folderId:    process.env.GOOGLE_DRIVE_FOLDER_ID ?? '',
   };
 }
