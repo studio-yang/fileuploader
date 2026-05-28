@@ -7,7 +7,8 @@ import { useTranslations } from 'next-intl';
 import { useLocale } from '@/components/I18nProvider';
 import { formatBytes } from '@/lib/utils';
 import { useToast } from '@/components/Toast';
-import { PackModal } from '@/components/PackModal';
+import dynamic from 'next/dynamic';
+const PackModal = dynamic(() => import('@/components/PackModal').then((m) => m.PackModal), { ssr: false });
 import {
   FileText, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet,
   File as FileIcon, FileType, Folder, Trash2, RotateCcw, X, Copy, Check, Download,

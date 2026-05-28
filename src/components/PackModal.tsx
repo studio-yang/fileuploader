@@ -83,64 +83,67 @@ export function PackModal({ files, onClose }: Props) {
     if (buf.byteLength <= SPLIT_BYTES) {
       downloadBlob(new Blob([buf]), `${base}.zip`);
     } else {
-      // 二進位分割成 .partN（合併方式：copy /b *.part* output.zip）
+      // 多卷 ZIP：主檔 .zip + 分卷 .z01 / .z02 / ...
       const count = Math.ceil(buf.byteLength / SPLIT_BYTES);
       for (let i = 0; i < count; i++) {
         const slice = buf.slice(i * SPLIT_BYTES, (i + 1) * SPLIT_BYTES);
-        downloadBlob(new Blob([slice]), `${base}.part${i + 1}`);
+        const name = i === 0
+          ? `${base}.zip`
+          : `${base}.z${String(i).padStart(2, '0')}`;
+        downloadBlob(new Blob([slice]), name);
       }
     }
   }
 
   async function run7z(items: { name: string; data: Uint8Array }[]) {
     if (!pw) throw new Error('伺服器尚未設定壓縮密碼，請管理員至「壓縮密碼」分頁設定');
-    const SevenZip = (await import('7z-wasm')).default;
-    let stderr = '';
-    const sz: any = await SevenZip({
-      print:    (s: string) => console.log('[7z]', s),
-      printErr: (s: string) => { stderr += s + '\n'; console.warn('[7z err]', s); },
-    });
-
-    items = dedupeNames(items);    // 防止同名互蓋
-    // 寫入根目錄（相對檔名讓 7z 存成扁平結構）
-    for (const it of items) sz.FS.writeFile(it.name, it.data);
-
+    items = dedupeNames(items);
+    const mx = Math.max(0, Math.min(9, level));
     const ts = timestamp();
     const base = `chb-files_${ts}`;
     const total = items.reduce((s, it) => s + it.data.length, 0);
-    const needSplit = total > SPLIT_BYTES;
-    const outName = 'output.7z';
 
-    // 壓縮率對應 7z -mx：0=Copy，1~9=壓縮等級
-    const mx = Math.max(0, Math.min(9, level));
-    const args: string[] = ['a', '-y', `-p${pw}`, '-mhe=on', `-mx=${mx}`];
-    if (needSplit) args.push(`-v${SPLIT_BYTES}b`);
-    args.push(outName, ...items.map((it) => it.name));
+    // 把 Uint8Array buffer 切出來（zero-copy transfer 給 worker）
+    const transferable = items.map((it) => ({
+      name: it.name,
+      data: it.data.buffer.slice(it.data.byteOffset, it.data.byteOffset + it.data.byteLength),
+    }));
 
-    let exit = 0;
-    try { exit = sz.callMain(args); } catch (e: any) {
-      const m = e?.message || String(e?.status ?? e?.code ?? e ?? '').slice(0, 200);
-      const hint = total > 200 * 1024 * 1024
-        ? '（檔案過大，請降低壓縮率：管理頁 → 壓縮密碼 → 滑桿調 3-5）'
-        : '';
-      throw new Error(`7z 失敗：${m || '記憶體不足'} ${hint}\n${stderr.trim().slice(0, 300)}`);
-    }
-    if (typeof exit === 'number' && exit !== 0) {
-      throw new Error(`7z exit ${exit}\n${stderr.trim().slice(0, 300)}`);
-    }
+    // Web Worker：7z 跑在 worker 內，主執行緒不會卡死
+    const worker = new Worker(new URL('../workers/pack-7z.worker.ts', import.meta.url));
 
-    if (needSplit) {
-      const entries: string[] = sz.FS.readdir('/');
-      const parts = entries.filter((n) => n.startsWith(outName + '.')).sort();
-      if (parts.length === 0) throw new Error(`7z 無輸出\n${stderr.trim().slice(0, 300)}`);
-      for (let i = 0; i < parts.length; i++) {
-        const data = sz.FS.readFile(parts[i]);
-        downloadBlob(new Blob([data]), `${base}.part${i + 1}`);
-      }
-    } else {
-      const data = sz.FS.readFile(outName);
-      downloadBlob(new Blob([data]), `${base}.7z`);
-    }
+    return new Promise<void>((resolve, reject) => {
+      worker.onmessage = (e: MessageEvent) => {
+        if (e.data.type === 'done') {
+          const results = e.data.results as { name: string; data: Uint8Array }[];
+          const toBuf = (u: Uint8Array): ArrayBuffer => u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer;
+          if (results.length === 1) {
+            downloadBlob(new Blob([toBuf(results[0].data)]), `${base}.7z`);
+          } else {
+            for (let i = 0; i < results.length; i++) {
+              const ext = String(i + 1).padStart(3, '0');
+              downloadBlob(new Blob([toBuf(results[i].data)]), `${base}.7z.${ext}`);
+            }
+          }
+          worker.terminate();
+          resolve();
+        } else if (e.data.type === 'error') {
+          worker.terminate();
+          const hint = total > 200 * 1024 * 1024
+            ? '（建議降低壓縮率：管理頁 → 壓縮密碼 → 滑桿調 3-5）'
+            : '';
+          reject(new Error(`7z 失敗：${e.data.message} ${hint}`));
+        }
+      };
+      worker.onerror = (e) => {
+        worker.terminate();
+        reject(new Error(`Worker 錯誤：${e.message || 'unknown'}`));
+      };
+      worker.postMessage(
+        { items: transferable, password: pw, level: mx, splitBytes: SPLIT_BYTES },
+        transferable.map((t) => t.data),
+      );
+    });
   }
 
   async function start() {
