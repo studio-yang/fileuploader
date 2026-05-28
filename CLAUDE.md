@@ -68,7 +68,9 @@ qrcode          (TOTP QR Code 產生)
 | `OTP_RECIPIENT` | 系統管理員 email（`alan0109@mail2000.com.tw`）| ❌ |
 | `AUTH_SECRET` | JWT 簽章金鑰（96 字元 hex）| ✅ |
 | `REDIS_URL` | Upstash Redis 連線字串（`rediss://...`），由 Vercel Storage 注入 | auto |
-| Google OAuth 系列 | gdrive 上傳用，既有未變動 | ✅ |
+| `GOOGLE_DRIVE_SA_KEY` | Service Account JSON 的 base64 編碼（取代 OAuth 三件套）| ✅ |
+| `GOOGLE_DRIVE_FOLDER_ID` | 目標 Drive 資料夾 ID（必須分享給 SA email 編輯權限）| ❌ |
+| ~~`GOOGLE_DRIVE_CLIENT_ID/_SECRET/_REFRESH_TOKEN`~~ | **已棄用**（21dc9c2 改用 SA），可從 Vercel 刪除 | — |
 | `RESEND_API_KEY` | 舊 Resend Key，已停用，可保留或刪除 | — |
 
 > ⚠️ **寄信改用 Brevo**（不需安裝套件，直接 fetch Brevo REST API）。
