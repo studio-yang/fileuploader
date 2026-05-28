@@ -12,6 +12,20 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  webpack: (config, { isServer }) => {
+    // 7z-wasm 是 browser-only，把 Node 內建模組 fallback 掉
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        module: false,
+        fs:     false,
+        path:   false,
+        crypto: false,
+      };
+    }
+    config.experiments = { ...(config.experiments || {}), asyncWebAssembly: true };
+    return config;
+  },
   async headers() {
     return [
       {

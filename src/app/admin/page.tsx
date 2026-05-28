@@ -27,8 +27,39 @@ export default function AdminPage() {
   const [confirmUnblock, setConfirmUnblock] = useState<string | null>(null);
 
   // B5: Admin tab
-  type AdminTab = 'whitelist' | 'blocklist' | 'totp';
+  type AdminTab = 'whitelist' | 'blocklist' | 'totp' | 'pack';
   const [adminTab, setAdminTab] = useState<AdminTab>('whitelist');
+
+  // 壓縮密碼
+  const [packPw,        setPackPw]        = useState('');
+  const [packPwShow,    setPackPwShow]    = useState(false);
+  const [packPwSaving,  setPackPwSaving]  = useState(false);
+  const [packPwError,   setPackPwError]   = useState('');
+  const [packPwOk,      setPackPwOk]      = useState('');
+  const [packPwUpdated, setPackPwUpdated] = useState<number>(0);
+
+  useEffect(() => {
+    fetch('/api/pack-password').then(r => r.json()).then(j => {
+      setPackPw(j.password ?? '');
+      setPackPwUpdated(j.updatedAt ?? 0);
+    }).catch(() => {});
+  }, []);
+
+  async function savePackPw() {
+    if (packPw.length < 6) { setPackPwError('密碼至少 6 字元'); return; }
+    setPackPwSaving(true); setPackPwError(''); setPackPwOk('');
+    try {
+      const r = await fetch('/api/pack-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: packPw }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setPackPwError(j.error ?? '儲存失敗'); return; }
+      setPackPwUpdated(Date.now());
+      setPackPwOk('已儲存');
+      setTimeout(() => setPackPwOk(''), 2000);
+    } finally { setPackPwSaving(false); }
+  }
 
   // TOTP 狀態
   const [totpConfigured, setTotpConfigured]   = useState<boolean | null>(null);
@@ -163,6 +194,7 @@ export default function AdminPage() {
             { id: 'whitelist' as AdminTab, label: '白名單', count: list.length },
             { id: 'blocklist' as AdminTab, label: '封鎖 IP', count: blocked.length },
             { id: 'totp'      as AdminTab, label: '備援登入', count: totpConfigured ? 1 : 0 },
+            { id: 'pack'      as AdminTab, label: '壓縮密碼', count: packPwUpdated ? 1 : 0 },
           ]).map((t) => {
             const active = adminTab === t.id;
             return (
@@ -409,6 +441,57 @@ export default function AdminPage() {
 
           {totpError && <p className="text-[12px] font-display" style={{ color: 'var(--ios-red)' }}>{totpError}</p>}
         </div>
+        </>)}
+
+        {/* 壓縮密碼分頁 */}
+        {adminTab === 'pack' && (<>
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="w-0.5 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, var(--ios-cyan), var(--tech-blue-500))' }} />
+              <span className="text-[11px] font-display font-semibold text-tertiary tracking-wider uppercase">7z 打包壓縮密碼</span>
+            </div>
+            <span className="text-[12px] font-mono text-tertiary">
+              {packPwUpdated ? new Date(packPwUpdated).toLocaleString('zh-TW') : '未設定'}
+            </span>
+          </div>
+
+          <div className="liquid-glass liquid-lensing rounded-ios-xl p-5 space-y-3">
+            <p className="text-[13px] text-secondary font-display">
+              所有登入使用者選擇「打包下載壓縮檔（.7z）」時，會使用此密碼加密檔名與內容。
+            </p>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <input
+                  type={packPwShow ? 'text' : 'password'}
+                  value={packPw}
+                  onChange={(e) => { setPackPw(e.target.value); setPackPwError(''); }}
+                  placeholder="至少 6 字元"
+                  className="w-full liquid-glass-thin rounded-ios-md py-2.5 px-3 pr-10 text-[14px] font-mono text-primary outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPackPwShow(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary text-[11px] px-2"
+                >
+                  {packPwShow ? '隱藏' : '顯示'}
+                </button>
+              </div>
+              <button
+                onClick={savePackPw}
+                disabled={packPwSaving || packPw.length < 6}
+                className="px-5 rounded-ios-md font-display font-semibold text-[13px] text-white"
+                style={{
+                  background: 'linear-gradient(135deg, var(--ios-cyan), var(--tech-blue-500))',
+                  opacity: (packPwSaving || packPw.length < 6) ? 0.45 : 1,
+                  cursor:  (packPwSaving || packPw.length < 6) ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {packPwSaving ? '儲存中…' : '儲存'}
+              </button>
+            </div>
+            {packPwError && <p className="text-[12px] font-display" style={{ color: 'var(--ios-red)' }}>{packPwError}</p>}
+            {packPwOk    && <p className="text-[12px] font-display" style={{ color: 'var(--ios-green)' }}>{packPwOk}</p>}
+          </div>
         </>)}
 
       </div>

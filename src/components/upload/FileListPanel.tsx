@@ -7,11 +7,12 @@ import { useTranslations } from 'next-intl';
 import { useLocale } from '@/components/I18nProvider';
 import { formatBytes } from '@/lib/utils';
 import { useToast } from '@/components/Toast';
+import { PackModal } from '@/components/PackModal';
 import {
   FileText, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet,
   File as FileIcon, FileType, Folder, Trash2, RotateCcw, X, Copy, Check, Download,
   Search, ChevronUp, ChevronDown, ArrowUpDown, Pin, PinOff, Share2,
-  LayoutGrid, LayoutList,
+  LayoutGrid, LayoutList, Package,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 
@@ -253,7 +254,8 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
   }
 
   const showTrashEntry  = view === 'normal' && isAdmin;
-  const showCheckbox    = isAdmin;
+  const showCheckbox    = true;                   // 打包功能：所有登入使用者皆可勾選
+  const [packOpen, setPackOpen] = useState(false);
 
   const confirmDeleteWord = t('confirmDeleteWord');
 
@@ -336,12 +338,19 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
           </span>
           {selected.size > 0 && (
             <div className="flex gap-1.5 ml-auto">
-              {view === 'normal' ? (
+              {/* 打包下載（所有使用者，僅 normal 模式，僅選非資料夾時可用）*/}
+              {view === 'normal' && (
+                <button onClick={() => setPackOpen(true)} disabled={busy}
+                  className="liquid-glass-thin liquid-tint-blue px-3 py-1.5 rounded-full text-[12px] font-display font-semibold transition-all hover:scale-[1.03] disabled:opacity-50 flex items-center gap-1.5">
+                  <Package size={12}/> 打包下載壓縮檔
+                </button>
+              )}
+              {view === 'normal' && isAdmin ? (
                 <button onClick={() => setConfirmOpen({ action: 'trash', ids: Array.from(selected) })} disabled={busy}
                   className="liquid-glass-thin liquid-tint-red px-3 py-1.5 rounded-full text-[12px] font-display font-semibold transition-all hover:scale-[1.03] disabled:opacity-50 flex items-center gap-1.5">
                   <Trash2 size={12}/> {t('moveToTrash')}
                 </button>
-              ) : (
+              ) : view === 'trash' && isAdmin ? (
                 <>
                   <button onClick={() => setConfirmOpen({ action: 'restore', ids: Array.from(selected) })} disabled={busy}
                     className="liquid-glass-thin liquid-tint-green px-3 py-1.5 rounded-full text-[12px] font-display font-semibold transition-all hover:scale-[1.03] disabled:opacity-50 flex items-center gap-1.5">
@@ -352,7 +361,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
                     <X size={12}/> {t('permanentDelete')}
                   </button>
                 </>
-              )}
+              ) : null}
             </div>
           )}
         </div>
@@ -589,6 +598,16 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
             </>
           )}
         </div>
+      )}
+
+      {/* 打包下載壓縮檔 Modal */}
+      {packOpen && (
+        <PackModal
+          onClose={() => setPackOpen(false)}
+          files={filtered
+            .filter((f) => selected.has(f.key) && !f.isFolder && f.downloadUrl)
+            .map((f) => ({ name: f.name, downloadUrl: f.downloadUrl, size: f.size }))}
+        />
       )}
     </div>
   );
