@@ -32,6 +32,7 @@ export default function AdminPage() {
 
   // 壓縮密碼
   const [packPw,        setPackPw]        = useState('');
+  const [packLvl,       setPackLvl]       = useState(9);
   const [packPwShow,    setPackPwShow]    = useState(false);
   const [packPwSaving,  setPackPwSaving]  = useState(false);
   const [packPwError,   setPackPwError]   = useState('');
@@ -41,6 +42,7 @@ export default function AdminPage() {
   useEffect(() => {
     fetch('/api/pack-password').then(r => r.json()).then(j => {
       setPackPw(j.password ?? '');
+      setPackLvl(j.compressionLevel ?? 9);
       setPackPwUpdated(j.updatedAt ?? 0);
     }).catch(() => {});
   }, []);
@@ -51,7 +53,7 @@ export default function AdminPage() {
     try {
       const r = await fetch('/api/pack-password', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: packPw }),
+        body: JSON.stringify({ password: packPw, compressionLevel: packLvl }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { setPackPwError(j.error ?? '儲存失敗'); return; }
@@ -488,6 +490,24 @@ export default function AdminPage() {
               >
                 {packPwSaving ? '儲存中…' : '儲存'}
               </button>
+            </div>
+            <div className="space-y-2 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-display text-secondary">壓縮率（0=不壓縮，9=極致壓縮）</span>
+                <span className="text-[13px] font-mono font-semibold text-primary">{packLvl}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={9}
+                step={1}
+                value={packLvl}
+                onChange={(e) => setPackLvl(Number(e.target.value))}
+                className="w-full accent-tech-blue-500"
+              />
+              <p className="text-[11px] font-display text-quaternary">
+                {packLvl === 0 ? '不壓縮（最快）' : packLvl <= 3 ? '快速（壓縮率低）' : packLvl <= 6 ? '標準' : packLvl === 9 ? '極致（速度最慢、檔案最小）' : '高'}
+              </p>
             </div>
             {packPwError && <p className="text-[12px] font-display" style={{ color: 'var(--ios-red)' }}>{packPwError}</p>}
             {packPwOk    && <p className="text-[12px] font-display" style={{ color: 'var(--ios-green)' }}>{packPwOk}</p>}

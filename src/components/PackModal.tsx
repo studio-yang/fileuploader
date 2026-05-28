@@ -28,13 +28,17 @@ export function PackModal({ files, onClose }: Props) {
   const [stage,    setStage]    = useState<Stage>('idle');
   const [progress, setProgress] = useState({ now: 0, total: 0 });
   const [pw,       setPw]       = useState('');
+  const [level,    setLevel]    = useState(9);
 
   const totalBytes = files.reduce((s, f) => s + f.size, 0);
   const tooBig    = totalBytes > MAX_BYTES;
   const overWarn  = totalBytes > WARN_BYTES;
 
   useEffect(() => {
-    fetch('/api/pack-password').then(r => r.json()).then(j => setPw(j.password ?? '')).catch(() => {});
+    fetch('/api/pack-password').then(r => r.json()).then(j => {
+      setPw(j.password ?? '');
+      setLevel(j.compressionLevel ?? 9);
+    }).catch(() => {});
   }, []);
 
   async function fetchAll(): Promise<{ name: string; data: Uint8Array }[]> {
@@ -68,8 +72,8 @@ export function PackModal({ files, onClose }: Props) {
     for (const it of items) zip.file(it.name, it.data);
     const u8: Uint8Array = await zip.generateAsync({
       type: 'uint8array',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 9 },
+      compression: level === 0 ? 'STORE' : 'DEFLATE',
+      compressionOptions: { level: Math.max(1, Math.min(9, level)) as 1|2|3|4|5|6|7|8|9 },
     });
 
     const ts = timestamp();
@@ -91,31 +95,45 @@ export function PackModal({ files, onClose }: Props) {
   async function run7z(items: { name: string; data: Uint8Array }[]) {
     if (!pw) throw new Error('伺服器尚未設定壓縮密碼，請管理員至「壓縮密碼」分頁設定');
     const SevenZip = (await import('7z-wasm')).default;
-    const sz: any = await SevenZip({});
-    for (const it of items) sz.FS.writeFile('/' + it.name, it.data);
+    let stderr = '';
+    const sz: any = await SevenZip({
+      print:    (s: string) => console.log('[7z]', s),
+      printErr: (s: string) => { stderr += s + '\n'; console.warn('[7z err]', s); },
+    });
+
+    // 寫入根目錄（相對檔名讓 7z 存成扁平結構）
+    for (const it of items) sz.FS.writeFile(it.name, it.data);
 
     const ts = timestamp();
     const base = `chb-files_${ts}`;
     const total = items.reduce((s, it) => s + it.data.length, 0);
     const needSplit = total > SPLIT_BYTES;
-    const tmpOut = 'output.7z';
+    const outName = 'output.7z';
 
-    // -mhe=on 檔名加密、-mx=9 最高壓縮、-m0=LZMA2、超過 300MB 才 -v 分卷
-    const args = ['a', `-p${pw}`, '-mhe=on', '-mx=9', '-m0=LZMA2'];
+    // 壓縮率對應 7z -mx：0=Copy，1~9=壓縮等級
+    const mx = Math.max(0, Math.min(9, level));
+    const args: string[] = ['a', '-y', `-p${pw}`, '-mhe=on', `-mx=${mx}`];
     if (needSplit) args.push(`-v${SPLIT_BYTES}b`);
-    args.push(tmpOut, ...items.map((it) => '/' + it.name));
-    sz.callMain(args);
+    args.push(outName, ...items.map((it) => it.name));
+
+    let exit = 0;
+    try { exit = sz.callMain(args); } catch (e: any) {
+      throw new Error(`7z 執行錯誤: ${e?.message ?? 'unknown'}\n${stderr.trim().slice(0, 300)}`);
+    }
+    if (typeof exit === 'number' && exit !== 0) {
+      throw new Error(`7z 失敗 (exit ${exit})\n${stderr.trim().slice(0, 300)}`);
+    }
 
     if (needSplit) {
       const entries: string[] = sz.FS.readdir('/');
-      const parts = entries.filter((n) => n.startsWith(tmpOut + '.')).sort();
-      if (parts.length === 0) throw new Error('7z 產出失敗');
+      const parts = entries.filter((n) => n.startsWith(outName + '.')).sort();
+      if (parts.length === 0) throw new Error(`7z 無輸出\n${stderr.trim().slice(0, 300)}`);
       for (let i = 0; i < parts.length; i++) {
         const data = sz.FS.readFile(parts[i]);
         downloadBlob(new Blob([data]), `${base}.part${i + 1}`);
       }
     } else {
-      const data = sz.FS.readFile(tmpOut);
+      const data = sz.FS.readFile(outName);
       downloadBlob(new Blob([data]), `${base}.7z`);
     }
   }
