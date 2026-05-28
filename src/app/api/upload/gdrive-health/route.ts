@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
  * Google Drive 健康檢查（診斷用）
  *
  * 用瀏覽器打開 /api/upload/gdrive-health 即可看到：
- *   1. GDRIVE_SERVICE_ACCOUNT_KEY 是否齊全
+ *   1. GOOGLE_DRIVE_SA_KEY 是否齊全
  *   2. Service Account JWT 是否能換 access_token
  *   3. 目標 Drive Folder 是否分享給 SA 且可存取
  */
@@ -20,11 +20,11 @@ export async function GET(_req: NextRequest) {
   };
 
   // ── Step 1: env var 檢查 ────────────────────────────────────────────
-  result.env.present['GDRIVE_SERVICE_ACCOUNT_KEY']    = Boolean(process.env.GDRIVE_SERVICE_ACCOUNT_KEY);
+  result.env.present['GOOGLE_DRIVE_SA_KEY']    = Boolean(process.env.GOOGLE_DRIVE_SA_KEY);
   result.env.present['GOOGLE_DRIVE_FOLDER_ID'] = Boolean(process.env.GOOGLE_DRIVE_FOLDER_ID);
-  result.env.ok = result.env.present['GDRIVE_SERVICE_ACCOUNT_KEY'];
+  result.env.ok = result.env.present['GOOGLE_DRIVE_SA_KEY'];
   if (!result.env.ok) {
-    result.env.hint = 'GDRIVE_SERVICE_ACCOUNT_KEY 未設定。請至 Vercel Env Var 加入 Service Account JSON 的 base64 編碼內容。';
+    result.env.hint = 'GOOGLE_DRIVE_SA_KEY 未設定。請至 Vercel Env Var 加入 Service Account JSON 的 base64 編碼內容。';
     return NextResponse.json(result, { status: 200 });
   }
 

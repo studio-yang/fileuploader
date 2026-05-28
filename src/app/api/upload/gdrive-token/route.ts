@@ -7,15 +7,15 @@ export const runtime = 'nodejs';
  * 取得 Google Drive Access Token（供前端 Resumable Upload 使用）
  *
  * 用 Service Account JWT 自動取得，永不過期。
- * env var: GDRIVE_SERVICE_ACCOUNT_KEY（Service Account JSON 的 base64 編碼）
+ * env var: GOOGLE_DRIVE_SA_KEY（Service Account JSON 的 base64 編碼）
  */
 export async function GET(_req: NextRequest) {
-  if (!process.env.GDRIVE_SERVICE_ACCOUNT_KEY) {
+  if (!process.env.GOOGLE_DRIVE_SA_KEY) {
     return NextResponse.json(
       {
-        error: 'Vercel 環境變數 GDRIVE_SERVICE_ACCOUNT_KEY 未設定',
+        error: 'Vercel 環境變數 GOOGLE_DRIVE_SA_KEY 未設定',
         code:  'missing_env',
-        missing: ['GDRIVE_SERVICE_ACCOUNT_KEY'],
+        missing: ['GOOGLE_DRIVE_SA_KEY'],
       },
       { status: 500 },
     );
@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest) {
       {
         error: err?.message || 'Service Account 取得 token 失敗',
         code:  'sa_error',
-        hint:  '請確認 GDRIVE_SERVICE_ACCOUNT_KEY 是有效的 base64 JSON，且 Service Account 已被分享到目標 Drive 資料夾',
+        hint:  '請確認 GOOGLE_DRIVE_SA_KEY 是有效的 base64 JSON，且 Service Account 已被分享到目標 Drive 資料夾',
       },
       { status: 500 },
     );
