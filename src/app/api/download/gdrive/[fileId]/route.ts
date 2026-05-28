@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { getAuthClient } from '@/lib/providers/gdrive';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-function getOAuth2Client() {
-  const oauth2 = new google.auth.OAuth2(
-    process.env.GOOGLE_DRIVE_CLIENT_ID,
-    process.env.GOOGLE_DRIVE_CLIENT_SECRET,
-    'urn:ietf:wg:oauth:2.0:oob',
-  );
-  oauth2.setCredentials({ refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN });
-  return oauth2;
-}
 
 // Google Docs 編輯器格式 → 匯出成 Office / PDF 格式
 const EXPORT_MAP: Record<string, { mimeType: string; ext: string }> = {
@@ -28,12 +19,12 @@ export async function GET(
 ) {
   try {
     const { fileId } = params;
-    const oauth2 = getOAuth2Client();
-    const { token } = await oauth2.getAccessToken();
-    if (!token) throw new Error('無法取得 Access Token');
+    const auth = getAuthClient();
+    const { access_token: token } = await auth.authorize();
+    if (!token) throw new Error('無法取得 Service Account Access Token');
 
     // 1. 取得檔名與 mimeType
-    const drive = google.drive({ version: 'v3', auth: oauth2 });
+    const drive = google.drive({ version: 'v3', auth });
     const meta = await drive.files.get({
       fileId,
       fields: 'name, mimeType, size',
