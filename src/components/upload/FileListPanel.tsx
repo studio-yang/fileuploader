@@ -77,32 +77,60 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
   /* Right-click */
   const [ctxMenu,     setCtxMenu]     = useState<CtxMenu | null>(null);
 
-  /* #3 Auto-sync 每 30 秒重新載入 */
+  /* #3 Auto-sync 每 30 秒靜默重新載入（不閃爍、不清空已選）*/
+  const isAutoRefreshRef = useRef(false);
   useEffect(() => {
-    const id = setInterval(() => setRefreshTick((n) => n + 1), 30_000);
+    const id = setInterval(() => {
+      isAutoRefreshRef.current = true;
+      setRefreshTick((n) => n + 1);
+    }, 30_000);
     return () => clearInterval(id);
   }, []);
 
   /* 載入清單 */
   useEffect(() => {
-    setLoading(true);
-    setSelected(new Set());
+    const isAuto = isAutoRefreshRef.current;
+    isAutoRefreshRef.current = false;
+    if (!isAuto) {
+      setLoading(true);
+      setSelected(new Set());
+    }
     const url = `/api/files?provider=${provider}${view === 'trash' ? '&view=trash' : ''}`;
     fetch(url)
       .then((r) => r.json())
       .then((data) => {
         const raw = data[provider] ?? [];
-        setFiles(raw.map((f: any) => ({
+        const newFiles: FileEntry[] = raw.map((f: any) => ({
           key:         provider === 'gdrive' ? f.id : provider === 'github' ? String(f.id) : f.name,
           name:        f.name,
           size:        Number(f.size) || 0,
           downloadUrl: f.downloadUrl,
           date:        f.updated ?? f.modifiedTime ?? f.createdAt,
           isFolder:    !!f.isFolder,
-        })));
+        }));
+        // 若內容相同就不更新（避免 React re-render 動畫重播）
+        setFiles((prev) => {
+          if (prev.length === newFiles.length && prev.every((p, i) => p.key === newFiles[i].key && p.size === newFiles[i].size)) {
+            return prev;
+          }
+          return newFiles;
+        });
+        if (isAuto) {
+          // 自動重整：只移除已不存在的選取，不清空
+          setSelected((prev) => {
+            const valid = new Set(newFiles.map((f) => f.key));
+            let changed = false;
+            const next = new Set<string>();
+            for (const k of prev) {
+              if (valid.has(k)) next.add(k);
+              else changed = true;
+            }
+            return changed ? next : prev;
+          });
+        }
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => { if (!isAuto) setLoading(false); });
   }, [provider, refresh, view, refreshTick]);
 
   /* 垃圾桶筆數 */

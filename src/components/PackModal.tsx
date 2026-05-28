@@ -63,28 +63,28 @@ export function PackModal({ files, onClose }: Props) {
 
   async function runZip(items: { name: string; data: Uint8Array }[]) {
     const JSZip = (await import('jszip')).default;
-    // 依大小分組（每組 ≤ 300MB），每組打一個 zip
-    const groups: { name: string; data: Uint8Array }[][] = [];
-    let cur: typeof items = []; let curSize = 0;
-    for (const it of items) {
-      if (curSize + it.data.length > SPLIT_BYTES && cur.length) {
-        groups.push(cur); cur = []; curSize = 0;
-      }
-      cur.push(it); curSize += it.data.length;
-    }
-    if (cur.length) groups.push(cur);
+    // 全部合併進單一 zip
+    const zip = new JSZip();
+    for (const it of items) zip.file(it.name, it.data);
+    const u8: Uint8Array = await zip.generateAsync({
+      type: 'uint8array',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 9 },
+    });
 
     const ts = timestamp();
-    for (let g = 0; g < groups.length; g++) {
-      const zip = new JSZip();
-      for (const it of groups[g]) zip.file(it.name, it.data);
-      const blob = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: { level: 9 },
-      });
-      const suffix = groups.length > 1 ? `_part${g + 1}of${groups.length}` : '';
-      downloadBlob(blob, `chb-files_${ts}${suffix}.zip`);
+    const base = `chb-files_${ts}`;
+
+    if (u8.length <= SPLIT_BYTES) {
+      // 單檔
+      downloadBlob(new Blob([u8]), `${base}.zip`);
+    } else {
+      // 二進位分割成 .partN（合併方式：copy /b *.part* output.zip）
+      const count = Math.ceil(u8.length / SPLIT_BYTES);
+      for (let i = 0; i < count; i++) {
+        const slice = u8.slice(i * SPLIT_BYTES, (i + 1) * SPLIT_BYTES);
+        downloadBlob(new Blob([slice]), `${base}.part${i + 1}`);
+      }
     }
   }
 
@@ -92,24 +92,31 @@ export function PackModal({ files, onClose }: Props) {
     if (!pw) throw new Error('伺服器尚未設定壓縮密碼，請管理員至「壓縮密碼」分頁設定');
     const SevenZip = (await import('7z-wasm')).default;
     const sz: any = await SevenZip({});
-    // 寫入 virtual FS
     for (const it of items) sz.FS.writeFile('/' + it.name, it.data);
+
     const ts = timestamp();
-    const out = `chb-files_${ts}.7z`;
-    // 加密 + LZMA2 最高壓縮 + 300MB 分卷 + 檔名加密
-    sz.callMain([
-      'a', `-p${pw}`, '-mhe=on', '-mx=9', '-ms=on', '-m0=LZMA2',
-      `-v${SPLIT_BYTES}b`,
-      out,
-      ...items.map((it) => '/' + it.name),
-    ]);
-    // 讀回所有分卷
-    const entries: string[] = sz.FS.readdir('/');
-    const parts = entries.filter((n) => n.startsWith(out)).sort();
-    if (parts.length === 0) throw new Error('7z 產出失敗');
-    for (const p of parts) {
-      const data = sz.FS.readFile(p);
-      downloadBlob(new Blob([data]), p);
+    const base = `chb-files_${ts}`;
+    const total = items.reduce((s, it) => s + it.data.length, 0);
+    const needSplit = total > SPLIT_BYTES;
+    const tmpOut = 'output.7z';
+
+    // -mhe=on 檔名加密、-mx=9 最高壓縮、-m0=LZMA2、超過 300MB 才 -v 分卷
+    const args = ['a', `-p${pw}`, '-mhe=on', '-mx=9', '-m0=LZMA2'];
+    if (needSplit) args.push(`-v${SPLIT_BYTES}b`);
+    args.push(tmpOut, ...items.map((it) => '/' + it.name));
+    sz.callMain(args);
+
+    if (needSplit) {
+      const entries: string[] = sz.FS.readdir('/');
+      const parts = entries.filter((n) => n.startsWith(tmpOut + '.')).sort();
+      if (parts.length === 0) throw new Error('7z 產出失敗');
+      for (let i = 0; i < parts.length; i++) {
+        const data = sz.FS.readFile(parts[i]);
+        downloadBlob(new Blob([data]), `${base}.part${i + 1}`);
+      }
+    } else {
+      const data = sz.FS.readFile(tmpOut);
+      downloadBlob(new Blob([data]), `${base}.7z`);
     }
   }
 
