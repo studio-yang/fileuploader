@@ -3,10 +3,10 @@ import { Readable } from 'stream';
 
 // ── Service Account auth（永不過期）─────────────────────────────────────────
 // 取代原本的 OAuth Refresh Token 機制，徹底解決 401 過期問題。
-// env var: GOOGLE_DRIVE_SA_KEY（Service Account JSON 內容，base64 編碼）
+// env var: GDRIVE_SERVICE_ACCOUNT_KEY（Service Account JSON 內容，base64 編碼）
 export function getAuthClient() {
-  const keyBase64 = process.env.GOOGLE_DRIVE_SA_KEY || '';
-  if (!keyBase64) throw new Error('GOOGLE_DRIVE_SA_KEY 未設定（請至 Vercel Env Var 設定 Service Account JSON 的 base64 內容）');
+  const keyBase64 = process.env.GDRIVE_SERVICE_ACCOUNT_KEY || '';
+  if (!keyBase64) throw new Error('GDRIVE_SERVICE_ACCOUNT_KEY 未設定（請至 Vercel Env Var 設定 Service Account JSON 的 base64 內容）');
   const credentials = JSON.parse(Buffer.from(keyBase64, 'base64').toString('utf-8'));
   return new google.auth.JWT({
     email:  credentials.client_email,
