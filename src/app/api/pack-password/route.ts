@@ -37,8 +37,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const password = typeof body?.password === 'string' ? body.password : '';
-  if (password.length < 6)
-    return NextResponse.json({ error: '密碼至少 6 字元' }, { status: 400 });
+  if (password.length < 1)
+    return NextResponse.json({ error: '密碼不可為空' }, { status: 400 });
   await redis().set(KEY, JSON.stringify({ password, updatedAt: Date.now() }));
   return NextResponse.json({ ok: true });
 }

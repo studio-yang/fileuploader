@@ -46,7 +46,7 @@ export default function AdminPage() {
   }, []);
 
   async function savePackPw() {
-    if (packPw.length < 6) { setPackPwError('密碼至少 6 字元'); return; }
+    if (packPw.length < 1) { setPackPwError('密碼不可為空'); return; }
     setPackPwSaving(true); setPackPwError(''); setPackPwOk('');
     try {
       const r = await fetch('/api/pack-password', {
@@ -465,7 +465,7 @@ export default function AdminPage() {
                   type={packPwShow ? 'text' : 'password'}
                   value={packPw}
                   onChange={(e) => { setPackPw(e.target.value); setPackPwError(''); }}
-                  placeholder="至少 6 字元"
+                  placeholder="輸入壓縮密碼"
                   className="w-full liquid-glass-thin rounded-ios-md py-2.5 px-3 pr-10 text-[14px] font-mono text-primary outline-none"
                 />
                 <button
@@ -478,12 +478,12 @@ export default function AdminPage() {
               </div>
               <button
                 onClick={savePackPw}
-                disabled={packPwSaving || packPw.length < 6}
+                disabled={packPwSaving || packPw.length < 1}
                 className="px-5 rounded-ios-md font-display font-semibold text-[13px] text-white"
                 style={{
                   background: 'linear-gradient(135deg, var(--ios-cyan), var(--tech-blue-500))',
-                  opacity: (packPwSaving || packPw.length < 6) ? 0.45 : 1,
-                  cursor:  (packPwSaving || packPw.length < 6) ? 'not-allowed' : 'pointer',
+                  opacity: (packPwSaving || packPw.length < 1) ? 0.45 : 1,
+                  cursor:  (packPwSaving || packPw.length < 1) ? 'not-allowed' : 'pointer',
                 }}
               >
                 {packPwSaving ? '儲存中…' : '儲存'}
