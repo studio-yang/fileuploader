@@ -121,10 +121,10 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
             const valid = new Set(newFiles.map((f) => f.key));
             let changed = false;
             const next = new Set<string>();
-            for (const k of prev) {
+            Array.from(prev).forEach((k) => {
               if (valid.has(k)) next.add(k);
               else changed = true;
-            }
+            });
             return changed ? next : prev;
           });
         }

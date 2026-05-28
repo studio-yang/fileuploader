@@ -75,14 +75,14 @@ export function PackModal({ files, onClose }: Props) {
     const ts = timestamp();
     const base = `chb-files_${ts}`;
 
-    if (u8.length <= SPLIT_BYTES) {
-      // 單檔
-      downloadBlob(new Blob([u8]), `${base}.zip`);
+    const buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
+    if (buf.byteLength <= SPLIT_BYTES) {
+      downloadBlob(new Blob([buf]), `${base}.zip`);
     } else {
       // 二進位分割成 .partN（合併方式：copy /b *.part* output.zip）
-      const count = Math.ceil(u8.length / SPLIT_BYTES);
+      const count = Math.ceil(buf.byteLength / SPLIT_BYTES);
       for (let i = 0; i < count; i++) {
-        const slice = u8.slice(i * SPLIT_BYTES, (i + 1) * SPLIT_BYTES);
+        const slice = buf.slice(i * SPLIT_BYTES, (i + 1) * SPLIT_BYTES);
         downloadBlob(new Blob([slice]), `${base}.part${i + 1}`);
       }
     }
