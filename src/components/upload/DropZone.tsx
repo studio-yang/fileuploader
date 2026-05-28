@@ -103,7 +103,7 @@ export default function DropZone({ onFiles, disabled }: Props) {
       </div>
 
       {/* Size hint */}
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 liquid-glass-thin px-3 py-1 rounded-full text-[11px] font-mono text-tertiary">
+      <div className="mt-4 sm:mt-5 liquid-glass-thin px-3 py-1 rounded-full text-[11px] font-mono text-tertiary">
         {t('maxSize', { size: formatBytes(5 * 1024 * 1024 * 1024) })}
       </div>
     </div>
