@@ -66,8 +66,8 @@ export function PackModal({ files, onClose }: Props) {
   }
 
   async function runZip(items: { name: string; data: Uint8Array }[]) {
+    items = dedupeNames(items);    // 防止同名互蓋
     const JSZip = (await import('jszip')).default;
-    // 全部合併進單一 zip
     const zip = new JSZip();
     for (const it of items) zip.file(it.name, it.data);
     const u8: Uint8Array = await zip.generateAsync({
@@ -101,6 +101,7 @@ export function PackModal({ files, onClose }: Props) {
       printErr: (s: string) => { stderr += s + '\n'; console.warn('[7z err]', s); },
     });
 
+    items = dedupeNames(items);    // 防止同名互蓋
     // 寫入根目錄（相對檔名讓 7z 存成扁平結構）
     for (const it of items) sz.FS.writeFile(it.name, it.data);
 
@@ -118,10 +119,14 @@ export function PackModal({ files, onClose }: Props) {
 
     let exit = 0;
     try { exit = sz.callMain(args); } catch (e: any) {
-      throw new Error(`7z 執行錯誤: ${e?.message ?? 'unknown'}\n${stderr.trim().slice(0, 300)}`);
+      const m = e?.message || String(e?.status ?? e?.code ?? e ?? '').slice(0, 200);
+      const hint = total > 200 * 1024 * 1024
+        ? '（檔案過大，請降低壓縮率：管理頁 → 壓縮密碼 → 滑桿調 3-5）'
+        : '';
+      throw new Error(`7z 失敗：${m || '記憶體不足'} ${hint}\n${stderr.trim().slice(0, 300)}`);
     }
     if (typeof exit === 'number' && exit !== 0) {
-      throw new Error(`7z 失敗 (exit ${exit})\n${stderr.trim().slice(0, 300)}`);
+      throw new Error(`7z exit ${exit}\n${stderr.trim().slice(0, 300)}`);
     }
 
     if (needSplit) {
@@ -272,6 +277,19 @@ export function PackModal({ files, onClose }: Props) {
       </div>
     </div>
   );
+}
+
+// 同名檔案後綴流水號避免被覆蓋
+function dedupeNames<T extends { name: string }>(items: T[]): T[] {
+  const c = new Map<string, number>();
+  return items.map((it) => {
+    const n = c.get(it.name) || 0;
+    c.set(it.name, n + 1);
+    if (n === 0) return it;
+    const d = it.name.lastIndexOf('.');
+    const name = d > 0 ? `${it.name.slice(0, d)} (${n})${it.name.slice(d)}` : `${it.name} (${n})`;
+    return { ...it, name };
+  });
 }
 
 function fmtBytes(n: number): string {
