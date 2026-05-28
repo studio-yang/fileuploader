@@ -110,7 +110,8 @@ export function PackModal({ files, onClose }: Props) {
     }));
 
     // Web Worker：7z 跑在 worker 內，主執行緒不會卡死
-    const worker = new Worker(new URL('../workers/pack-7z.worker.ts', import.meta.url));
+    // type: 'module' 必要 — 7z-wasm 是 ES6 module，沒這旗標 worker 會 SyntaxError
+    const worker = new Worker(new URL('../workers/pack-7z.worker.ts', import.meta.url), { type: 'module' });
 
     return new Promise<void>((resolve, reject) => {
       worker.onmessage = (e: MessageEvent) => {
