@@ -656,38 +656,42 @@ function FileRow({ f, i, showCheckbox, selected, copied, isPinned, locale, onTog
       onContextMenu={onContextMenu}
       className="liquid-glass liquid-lensing rounded-ios-lg p-4 animate-ios-slide-up group transition-all hover:-translate-y-px hover:bg-white/[0.03]"
     >
-      <div className="flex items-center gap-3">
-        {showCheckbox && (
-          <input type="checkbox" checked={selected} onChange={onToggle}
-            aria-label={`${locale === 'en' ? 'Select' : '選取'} ${f.name}`} className="w-4 h-4 accent-tech-blue-500 flex-shrink-0"/>
-        )}
+      {/* 手機版：名稱列 + 按鈕列上下堆疊；桌機版(sm+)：恢復單行橫排 */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {showCheckbox && (
+            <input type="checkbox" checked={selected} onChange={onToggle}
+              aria-label={`${locale === 'en' ? 'Select' : '選取'} ${f.name}`} className="w-4 h-4 accent-tech-blue-500 flex-shrink-0"/>
+          )}
 
-        <div className={`liquid-glass-thin ${f.isFolder ? 'liquid-tint-orange' : getFileTint(f.name)} w-12 h-12 rounded-ios-md flex items-center justify-center flex-shrink-0 relative group/icon`}>
-          <FileIconRender name={f.name} isFolder={!!f.isFolder}/>
-          {isImageFile(f.name) && f.downloadUrl && (
-            <div className="absolute left-14 top-0 z-30 invisible group-hover/icon:visible opacity-0 group-hover/icon:opacity-100 transition-all pointer-events-none">
-              <div className="liquid-glass-strong rounded-ios-md p-1.5" style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.50)' }}>
-                <img src={f.downloadUrl} alt={f.name} className="max-w-[200px] max-h-[200px] rounded-ios-md object-contain"/>
+          <div className={`liquid-glass-thin ${f.isFolder ? 'liquid-tint-orange' : getFileTint(f.name)} w-12 h-12 rounded-ios-md flex items-center justify-center flex-shrink-0 relative group/icon`}>
+            <FileIconRender name={f.name} isFolder={!!f.isFolder}/>
+            {isImageFile(f.name) && f.downloadUrl && (
+              <div className="absolute left-14 top-0 z-30 invisible group-hover/icon:visible opacity-0 group-hover/icon:opacity-100 transition-all pointer-events-none">
+                <div className="liquid-glass-strong rounded-ios-md p-1.5" style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.50)' }}>
+                  <img src={f.downloadUrl} alt={f.name} className="max-w-[200px] max-h-[200px] rounded-ios-md object-contain"/>
+                </div>
               </div>
-            </div>
-          )}
-          {isPinned && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--ios-orange)' }}>
-              <Pin size={8} className="text-white"/>
-            </div>
-          )}
-        </div>
+            )}
+            {isPinned && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--ios-orange)' }}>
+                <Pin size={8} className="text-white"/>
+              </div>
+            )}
+          </div>
 
-        <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-display font-medium truncate text-primary tracking-tight" title={f.name}>{f.name}</p>
-          <div className="flex items-center gap-2 text-[12px] text-tertiary font-display mt-1">
-            {!f.isFolder && <span className="font-mono">{formatBytes(f.size)}</span>}
-            {f.date && <><span className="text-quaternary">·</span><span>{formatDate(f.date, locale)}</span></>}
+          <div className="flex-1 min-w-0">
+            {/* 手機版允許換行顯示完整檔名；桌機版單行截斷 */}
+            <p className="text-[15px] font-display font-medium text-primary tracking-tight break-all sm:truncate" title={f.name}>{f.name}</p>
+            <div className="flex items-center gap-2 text-[12px] text-tertiary font-display mt-1">
+              {!f.isFolder && <span className="font-mono">{formatBytes(f.size)}</span>}
+              {f.date && <><span className="text-quaternary">·</span><span>{formatDate(f.date, locale)}</span></>}
+            </div>
           </div>
         </div>
 
         {!f.isFolder && (
-          <div className="flex gap-1.5 flex-shrink-0">
+          <div className="flex flex-wrap gap-1.5 flex-shrink-0 ml-[88px] sm:ml-0">
             {/* #11 Pin */}
             <button onClick={onPin}
               className={`liquid-glass-thin w-8 h-8 rounded-full flex items-center justify-center transition-all hover:-translate-y-px ${isPinned ? 'liquid-tint-orange' : 'text-quaternary hover:text-primary'}`}
