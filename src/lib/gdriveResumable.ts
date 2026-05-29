@@ -26,7 +26,8 @@ async function createDriveSession(
   const res = await fetch('/api/upload/gdrive/create-session', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ fileName, mimeType, fileSize }),
+    // 帶上瀏覽器 origin：Google 依「建立 session 當下的 Origin」決定後續分塊 PUT 的 CORS 許可
+    body:    JSON.stringify({ fileName, mimeType, fileSize, origin: window.location.origin }),
   });
   if (!res.ok) {
     const { error } = await res.json().catch(() => ({ error: '建立 Session 失敗' }));

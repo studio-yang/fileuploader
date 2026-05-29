@@ -73,6 +73,7 @@ export async function createDriveResumableSession(
   fileName: string,
   mimeType: string,
   fileSize: number,
+  origin?:  string,
 ): Promise<string> {
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || undefined;
   const metadata: Record<string, any> = { name: fileName };
@@ -94,6 +95,9 @@ export async function createDriveResumableSession(
         'Content-Type':            'application/json; charset=UTF-8',
         'X-Upload-Content-Type':   mimeType,
         'X-Upload-Content-Length': String(fileSize),
+        // 轉發瀏覽器 Origin：Google 才會在 session 上開啟該 origin 的 CORS，
+        // 否則瀏覽器後續分塊 PUT 會被 CORS 擋掉（No Access-Control-Allow-Origin）
+        ...(origin ? { Origin: origin } : {}),
       },
       body: JSON.stringify(metadata),
     });

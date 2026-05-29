@@ -12,15 +12,19 @@ export const runtime = 'nodejs';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { fileName, mimeType, fileSize } = await req.json();
+    const { fileName, mimeType, fileSize, origin } = await req.json();
     if (!fileName || typeof fileSize !== 'number') {
       return NextResponse.json({ error: 'fileName 與 fileSize 為必填' }, { status: 400 });
     }
+
+    // 前端 origin 優先；退而求其次用請求自身的 Origin header（同源 POST 也會帶）
+    const browserOrigin = origin || req.headers.get('origin') || undefined;
 
     const uploadUrl = await createDriveResumableSession(
       fileName,
       mimeType || 'application/octet-stream',
       fileSize,
+      browserOrigin,
     );
     return NextResponse.json({ uploadUrl });
   } catch (err: any) {
