@@ -46,16 +46,15 @@ export function PackModal({ files, onClose }: Props) {
     setProgress({ now: 0, total: files.length });
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
+      // 外部 URL（GCS / GitHub）走後端 proxy，避免 CORS
+      const url = /^https?:/i.test(f.downloadUrl)
+        ? `/api/files/proxy?url=${encodeURIComponent(f.downloadUrl)}`
+        : f.downloadUrl;
       let r: Response;
       try {
-        // credentials:include 確保跨來源也帶 cookie；no-store 跳過 Service Worker 快取
-        r = await fetch(f.downloadUrl, { credentials: 'include', cache: 'no-store' });
+        r = await fetch(url, { credentials: 'include', cache: 'no-store' });
       } catch (e: any) {
-        const isAbs = /^https?:/i.test(f.downloadUrl);
-        const hint = isAbs
-          ? '（外部來源 CORS 或網路問題，可能是 GCS signed URL 已過期，請重新整理頁面）'
-          : '（API 路徑無回應，可能是 Drive OAuth 過期或 Service Worker 快取問題）';
-        throw new Error(`網路錯誤：${e?.message || e || 'Failed to fetch'} - ${f.name} ${hint}`);
+        throw new Error(`網路錯誤：${e?.message || e || 'Failed to fetch'} - ${f.name}`);
       }
       if (!r.ok) {
         let body = ''; try { body = (await r.text()).slice(0, 200); } catch {}
