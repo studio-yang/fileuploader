@@ -56,7 +56,11 @@ export function PackModal({ files, onClose }: Props) {
   }
 
   function downloadBlob(blob: Blob, name: string) {
-    const url = URL.createObjectURL(blob);
+    // 強制 octet-stream，避免瀏覽器 sniffing 內容自動加 .txt 副檔名
+    const final = blob.type === 'application/octet-stream'
+      ? blob
+      : new Blob([blob], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(final);
     const a = document.createElement('a');
     a.href = url; a.download = name;
     document.body.appendChild(a);
