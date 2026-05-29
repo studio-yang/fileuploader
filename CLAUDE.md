@@ -180,6 +180,29 @@ fileuploader/
 
 最後完成：UI/UX 全面優化方案 4（30 項全做完）。
 
+---
+
+## 🚨 高優先未解問題：Drive OAuth 401 已復發 5 次
+
+> ⚠️ **使用者明確要求**：堅持用 Drive（已訂 2TB 付費版），不要再建議改 GCS 或 Service Account。
+> 必須找根本原因。
+
+### 已知無效的「快速修法」
+- ❌ Service Account：個人帳號 SA 沒儲存配額
+- ❌ Client Secret rotation：反而觸發 token 失效
+- ❌ OAuth Playground 重產 refresh token：撐不久就再壞
+
+### 下次接手必須調查的根因方向
+1. **OAuth Client 的 User Type**：External vs Internal — External 但未通過 Google 驗證的 app，refresh token **7 天就過期**
+2. **單一 user/client 的 refresh token 上限 50 個**：超過會自動撤銷最舊的
+3. **OAuth Client 是否被 Google 安全機制標記**
+4. **觀察單一 token 存活天數**，找出觸發過期的條件
+5. 使用者用個人 Google 帳號，**沒 Workspace** → Domain-Wide Delegation 不適用
+
+### 最新 commit
+- `1889ab6` `/api/files/proxy` 解決外部 URL CORS
+- Pack 功能（ZIP + 7z web worker + 後端密碼 + 壓縮率 slider）已完整
+
 ### 🔄 下次接手時的進化選單（已存 mem0，跑 `npm run mem0:load` 看完整版）
 
 **UX v2.0 進化提案**（共 20 項，分 4 Tier）
