@@ -32,7 +32,6 @@ export async function GET(req: Request) {
   if (!allowed) return NextResponse.json({ found: false });
 
   // Rate Limit（與 request-otp 相同邏輯）
-  const ip         = getClientIp(req.headers);
   const isAdminReq = isAdminEmail(email);
   if (!isAdminReq) {
     const blocked = await isBlocked(ip).catch(() => false);
