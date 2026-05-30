@@ -248,7 +248,7 @@ export default function FileListPanel({ provider, refresh, isAdmin = false, onGo
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) {
-        toast.error(`部分操作失敗：${j.error ?? `${j.failed?.length ?? '?'} 個項目`}`);
+        toast.error(`部分操作失敗：${j.error ?? j.failed?.[0]?.error ?? `${j.failed?.length ?? '?'} 個項目`}`);
       } else {
         success = true;
         if (action === 'trash') {

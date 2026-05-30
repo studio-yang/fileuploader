@@ -45,26 +45,37 @@ export async function POST(req: Request) {
 
   const fail: { id: string; error: string }[] = [];
 
-  await Promise.all(ids.map(async (id) => {
-    try {
-      if (provider === 'gdrive') {
-        if (action === 'trash')     await trashGoogleDriveFile(id);
-        if (action === 'restore')   await restoreGoogleDriveFile(id);
-        if (action === 'permanent') await permanentDeleteGoogleDriveFile(id);
-      } else if (provider === 'gcs') {
-        if (action === 'trash')     await trashGCSFile(id);
-        if (action === 'restore')   await restoreGCSFile(id);
-        if (action === 'permanent') await permanentDeleteGCSFile(id);
-      } else if (provider === 'github') {
+  if (provider === 'github') {
+    // GitHub release asset API 不支援並行寫入（secondary rate limit）；循序執行
+    for (const id of ids) {
+      try {
         const numId = Number(id);
         if (action === 'trash')     await trashGitHubAsset(numId);
         if (action === 'restore')   await restoreGitHubAsset(numId);
         if (action === 'permanent') await permanentDeleteGitHubAsset(numId);
+      } catch (e: any) {
+        console.error(`[action] github ${action} id=${id}: status=${(e as any)?.status ?? 'n/a'} msg=${e?.message}`);
+        fail.push({ id, error: e?.message ?? 'unknown' });
       }
-    } catch (e: any) {
-      fail.push({ id, error: e?.message ?? 'unknown' });
     }
-  }));
+  } else {
+    await Promise.all(ids.map(async (id) => {
+      try {
+        if (provider === 'gdrive') {
+          if (action === 'trash')     await trashGoogleDriveFile(id);
+          if (action === 'restore')   await restoreGoogleDriveFile(id);
+          if (action === 'permanent') await permanentDeleteGoogleDriveFile(id);
+        } else if (provider === 'gcs') {
+          if (action === 'trash')     await trashGCSFile(id);
+          if (action === 'restore')   await restoreGCSFile(id);
+          if (action === 'permanent') await permanentDeleteGCSFile(id);
+        }
+      } catch (e: any) {
+        console.error(`[action] ${provider} ${action} id=${id}: status=${(e as any)?.status ?? 'n/a'} msg=${e?.message}`);
+        fail.push({ id, error: e?.message ?? 'unknown' });
+      }
+    }));
+  }
 
   return NextResponse.json({
     ok:        fail.length === 0,
