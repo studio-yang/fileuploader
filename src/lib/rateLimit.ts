@@ -1,7 +1,7 @@
 import IORedis from 'ioredis';
 
 const WINDOW_SEC   = 180;
-const MAX_REQUESTS = 5;
+const MAX_REQUESTS = 3;  // 降低阈值：3 分鐘最多 3 次
 const RATE_KEY     = (ip: string) => `ratelimit:otp:${ip}`;
 const BLOCK_KEY    = 'blocklist:ips';
 
@@ -79,4 +79,32 @@ export async function incrOtpAttempt(email: string): Promise<number> {
 
 export async function resetOtpAttempt(email: string): Promise<void> {
   await redis().del(`otp_attempts:${email}`);
+}
+
+/** 管理員操作速率限制（10 分鐘 100 次） */
+export async function incrAdminRate(email: string): Promise<number> {
+  const key = `admin_rate:${email}`;
+  const count = await redis().incr(key);
+  if (count === 1) await redis().expire(key, 600); // 10 分鐘
+  return count;
+}
+
+/** 稽核日誌 */
+export async function auditLog(action: string, email: string, ip: string, status: 'success' | 'failure', details?: string): Promise<void> {
+  try {
+    const log = {
+      timestamp: new Date().toISOString(),
+      action,
+      email,
+      ip,
+      status,
+      details,
+    };
+    await redis().rpush('audit:log', JSON.stringify(log));
+    // 保留最近 10000 筆日誌
+    await redis().ltrim('audit:log', -10000, -1);
+  } catch {
+    // 日誌失敗不應阻塞主流程
+    console.error('[audit] failed to log');
+  }
 }

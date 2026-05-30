@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateOtp, hashOtp, signChallenge, normalizeEmail, isValidEmail, isAdminEmail } from '@/lib/auth';
 import { isWhitelisted } from '@/lib/whitelist';
-import { getClientIp, isBlocked, incrRate, blockIp, RATE_MAX } from '@/lib/rateLimit';
+import { getClientIp, isBlocked, incrRate, blockIp, RATE_MAX, auditLog } from '@/lib/rateLimit';
 import { sendBlockNotification } from '@/lib/blockNotify';
 
 export async function POST(req: Request) {
@@ -62,6 +62,9 @@ export async function POST(req: Request) {
 
   const otp       = generateOtp();
   const challenge = await signChallenge(await hashOtp(otp), email);
+
+  // 稽核日誌
+  await auditLog('request-otp', email, ip, 'success').catch(() => {});
 
   try {
     const resp = await fetch('https://api.brevo.com/v3/smtp/email', {

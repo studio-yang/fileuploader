@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { Resend } from 'resend';
-import { getDeviceEmail } from '@/lib/device';
+import { getDevice, getDeviceFingerprint } from '@/lib/device';
 import { isWhitelisted } from '@/lib/whitelist';
-import { getClientIp, isBlocked, incrRate, blockIp, RATE_MAX } from '@/lib/rateLimit';
+import { getClientIp, isBlocked, incrRate, blockIp, RATE_MAX, auditLog } from '@/lib/rateLimit';
 import { generateOtp, hashOtp, signChallenge, isAdminEmail } from '@/lib/auth';
 
 export async function GET(req: Request) {
@@ -11,10 +11,21 @@ export async function GET(req: Request) {
   const token = cookies().get('remembered_device')?.value;
   if (!token) return NextResponse.json({ found: false });
 
-  // 查詢對應 email
-  let email: string | null = null;
-  try { email = await getDeviceEmail(token); } catch { return NextResponse.json({ found: false }); }
-  if (!email) return NextResponse.json({ found: false });
+  // 查詢對應 email 及指紋
+  let device = null;
+  try { device = await getDevice(token); } catch { return NextResponse.json({ found: false }); }
+  if (!device || !device.email) return NextResponse.json({ found: false });
+
+  // 驗證設備指紋（防止盜用）
+  const ua = req.headers.get('user-agent') || '';
+  const ip = getClientIp(req.headers);
+  const currentFingerprint = getDeviceFingerprint(ua, ip);
+  if (currentFingerprint !== device.fingerprint) {
+    await auditLog('check-device', device.email, ip, 'failure', 'fingerprint mismatch').catch(() => {});
+    return NextResponse.json({ found: false });
+  }
+
+  const email = device.email;
 
   // 白名單確認
   const allowed = await isWhitelisted(email).catch(() => false);
