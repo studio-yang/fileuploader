@@ -110,10 +110,33 @@ export async function trashGitHubAsset(assetId: number): Promise<void> {
     owner: OWNER(), repo: REPO(), asset_id: assetId,
   });
   if (asset.name.startsWith(TRASH_PREFIX)) return; // 已在垃圾桶
-  await octokit.rest.repos.updateReleaseAsset({
-    owner: OWNER(), repo: REPO(), asset_id: assetId,
-    name: `${TRASH_PREFIX}${asset.name}`,
-  });
+
+  const trashName = `${TRASH_PREFIX}${asset.name}`;
+  try {
+    await octokit.rest.repos.updateReleaseAsset({
+      owner: OWNER(), repo: REPO(), asset_id: assetId,
+      name: trashName,
+    });
+  } catch (e: any) {
+    // already_exists：前次操作已成功 rename 但前端顯示失敗（stale 狀態）
+    // → 先刪除殭屍 _TRASH_ 檔，再重試 rename
+    if (!e?.message?.includes('already_exists')) throw e;
+    const release = await ensureUploadRelease(octokit);
+    const { data: all } = await octokit.rest.repos.listReleaseAssets({
+      owner: OWNER(), repo: REPO(), release_id: release.id, per_page: 100,
+    });
+    const stale = all.find((a) => a.name === trashName);
+    if (stale) {
+      await octokit.rest.repos.deleteReleaseAsset({
+        owner: OWNER(), repo: REPO(), asset_id: stale.id,
+      });
+    }
+    // 重試 rename（舊殭屍已移除）
+    await octokit.rest.repos.updateReleaseAsset({
+      owner: OWNER(), repo: REPO(), asset_id: assetId,
+      name: trashName,
+    });
+  }
 }
 
 // ── 從垃圾桶還原 ─────────────────────────────────────────────────────────
