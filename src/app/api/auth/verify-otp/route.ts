@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { hashOtp, signSession, verifyToken, normalizeEmail, isValidEmail } from '@/lib/auth';
+import { incrOtpAttempt, resetOtpAttempt } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -20,11 +21,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '驗證碼已過期，請重新請求' }, { status: 400 });
   }
 
+  // 防暴力破解：驗證失敗次數限制
+  const attempts = await incrOtpAttempt(email);
+  if (attempts > 5) {
+    return NextResponse.json({ error: '驗證碼輸入次數過多，請重新請求' }, { status: 429 });
+  }
+
   const payload = await verifyToken(challenge);
   const expect  = await hashOtp(otp);
   if (!payload || payload.h !== expect || payload.e !== email) {
     return NextResponse.json({ error: '驗證碼錯誤或與 Email 不符' }, { status: 401 });
   }
+
+  // 驗證成功，清除失敗計數
+  await resetOtpAttempt(email);
 
   const session = await signSession(email);
   const res = NextResponse.json({ ok: true });

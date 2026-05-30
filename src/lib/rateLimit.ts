@@ -68,3 +68,15 @@ export async function incrRate(ip: string): Promise<number> {
   if (count === 1) await r.expire(key, WINDOW_SEC);
   return count;
 }
+
+/** OTP 驗證失敗次數計數（防暴力破解） */
+export async function incrOtpAttempt(email: string): Promise<number> {
+  const key = `otp_attempts:${email}`;
+  const count = await redis().incr(key);
+  if (count === 1) await redis().expire(key, 300); // 5 分鐘重置
+  return count;
+}
+
+export async function resetOtpAttempt(email: string): Promise<void> {
+  await redis().del(`otp_attempts:${email}`);
+}

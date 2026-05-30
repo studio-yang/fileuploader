@@ -30,9 +30,22 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 }
 
 export async function hashOtp(otp: string): Promise<string> {
-  const buf = new TextEncoder().encode(otp);
-  const hash = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hash))
+  // 使用 PBKDF2 + salt 防止預計算攻擊
+  const encoder = new TextEncoder();
+  const salt = new TextEncoder().encode(process.env.AUTH_SALT || 'chb-fileuploader-salt');
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(otp),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  const derived = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 10000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  return Array.from(new Uint8Array(derived))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
@@ -53,5 +66,8 @@ export function isAdminEmail(email: string): boolean {
 }
 
 export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  // RFC 5322 簡化版本，防止無效 email 格式
+  // 允許：字母數字、點、連字符、下劃線、加號（本地）@ 域名 . 頂級域
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  return emailRegex.test(email) && email.length <= 254;
 }

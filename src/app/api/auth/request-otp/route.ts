@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         sender:      { name: 'CHB FileUploader', email: sender },
         to:          [{ email }],
-        subject:     `CHB 檔案傳輸 登入驗證碼：${otp}`,
+        subject:     'CHB 檔案傳輸 - 登入驗證',
         htmlContent: `<div style="font-family:-apple-system,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f6f8fb;border-radius:16px">
   <h2 style="margin:0 0 16px;color:#1a2340">CHB 檔案傳輸登入驗證</h2>
   <p style="color:#444;margin:0 0 24px">您的一次性登入驗證碼為：</p>
