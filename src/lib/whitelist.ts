@@ -1,21 +1,10 @@
-import IORedis from 'ioredis';
 import { normalizeEmail, isAdminEmail } from './auth';
+import { getRedis } from './redis';
 
 const KEY = 'whitelist:emails';
 const MAX = 100;
 
-let _redis: IORedis | null = null;
-function redis(): IORedis {
-  if (_redis) return _redis;
-  const url = process.env.REDIS_URL || process.env.KV_URL || '';
-  if (!url) throw new Error('Redis 未設定');
-  _redis = new IORedis(url, {
-    maxRetriesPerRequest: 3,
-    enableReadyCheck:     false,
-    lazyConnect:          false,
-  });
-  return _redis;
-}
+const redis = () => getRedis();
 
 export interface WhitelistEntry {
   email:   string;

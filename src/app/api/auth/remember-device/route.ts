@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import { generateDeviceToken, rememberDevice, getDeviceFingerprint } from '@/lib/device';
-import { getClientIp } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
   const token = cookies().get('session')?.value;
@@ -12,10 +11,9 @@ export async function POST(req: Request) {
   const email   = typeof payload?.email === 'string' ? payload.email : '';
   if (!email) return NextResponse.json({ error: '無效 session' }, { status: 401 });
 
-  // 計算設備指紋
+  // 計算設備指紋（UA-only，避免 IP 漂移誤判）
   const ua = req.headers.get('user-agent') || '';
-  const ip = getClientIp(req.headers);
-  const fingerprint = getDeviceFingerprint(ua, ip);
+  const fingerprint = getDeviceFingerprint(ua);
 
   const deviceToken = generateDeviceToken();
   await rememberDevice(deviceToken, email, fingerprint);

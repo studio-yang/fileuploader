@@ -1,22 +1,11 @@
-import IORedis from 'ioredis';
+import { getRedis } from './redis';
 
 const WINDOW_SEC   = 180;
-const MAX_REQUESTS = 3;  // 降低阈值：3 分鐘最多 3 次
+const MAX_REQUESTS = 3;  // 3 分鐘最多 3 次
 const RATE_KEY     = (ip: string) => `ratelimit:otp:${ip}`;
 const BLOCK_KEY    = 'blocklist:ips';
 
-let _redis: IORedis | null = null;
-function redis(): IORedis {
-  if (_redis) return _redis;
-  const url = process.env.REDIS_URL || process.env.KV_URL || '';
-  if (!url) throw new Error('Redis 未設定');
-  _redis = new IORedis(url, {
-    maxRetriesPerRequest: 3,
-    enableReadyCheck:     false,
-    lazyConnect:          false,
-  });
-  return _redis;
-}
+const redis = () => getRedis();
 
 export const RATE_WINDOW_SEC = WINDOW_SEC;
 export const RATE_MAX        = MAX_REQUESTS;

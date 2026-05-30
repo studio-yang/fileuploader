@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import IORedis from 'ioredis';
+import { cookies } from 'next/headers';
+import { verifyToken, isAdminEmail } from '@/lib/auth';
+import { getRedis } from '@/lib/redis';
 
-let _redis: IORedis | null = null;
-function redis(): IORedis | null {
-  if (_redis) return _redis;
-  const url = process.env.REDIS_URL || process.env.KV_URL || '';
-  if (!url) return null;
-  _redis = new IORedis(url, { maxRetriesPerRequest: 3, enableReadyCheck: false, lazyConnect: false });
-  return _redis;
+function redis() {
+  try { return getRedis(); } catch { return null; }
 }
 
 const KEY = 'audit:log';
 const MAX = 500;
 
+async function requireAdmin(): Promise<boolean> {
+  const token = cookies().get('session')?.value;
+  if (!token) return false;
+  const payload = await verifyToken(token).catch(() => null);
+  const email = typeof payload?.email === 'string' ? payload.email : '';
+  return isAdminEmail(email);
+}
+
 export async function POST(req: NextRequest) {
+  if (!await requireAdmin()) return NextResponse.json({ error: '權限不足' }, { status: 403 });
   try {
     const { action, details } = await req.json();
     if (!action) return NextResponse.json({ ok: false }, { status: 400 });
@@ -29,6 +35,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  if (!await requireAdmin()) return NextResponse.json({ error: '權限不足' }, { status: 403 });
   try {
     const r = redis();
     if (!r) return NextResponse.json({ logs: [] });
