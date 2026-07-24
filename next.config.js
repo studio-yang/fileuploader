@@ -29,6 +29,15 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // API CORS（Koyeb/自架平台不吃 vercel.json，需在此宣告）
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type,x-file-name,x-content-type,x-file-size' },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },

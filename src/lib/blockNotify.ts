@@ -1,6 +1,6 @@
 import { SignJWT } from 'jose';
 
-const BASE_URL = 'https://chb-fileuploader.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://chb-fileuploader.vercel.app';
 
 function getSecret() {
   const s = process.env.AUTH_SECRET || '';

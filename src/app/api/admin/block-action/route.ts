@@ -3,6 +3,8 @@ import { jwtVerify } from 'jose';
 import { unblockIp } from '@/lib/rateLimit';
 import { addToWhitelist } from '@/lib/whitelist';
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://chb-fileuploader.vercel.app';
+
 function getSecret() {
   return new TextEncoder().encode(process.env.AUTH_SECRET || '');
 }
@@ -20,7 +22,7 @@ function htmlPage(title: string, message: string, color: string) {
   <div class="icon">${color === '#34c759' ? '✅' : color === '#0066ff' ? '✅' : '❌'}</div>
   <div class="title">${title}</div>
   <div class="msg">${message}</div>
-  <a class="back" href="https://chb-fileuploader.vercel.app/admin" style="background:${color}">前往管理後台</a>
+  <a class="back" href="${BASE_URL}/admin" style="background:${color}">前往管理後台</a>
 </div></body></html>`,
     { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
