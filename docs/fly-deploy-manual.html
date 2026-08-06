@@ -305,8 +305,8 @@
       <ol class="steps">
         <li><strong>開 PowerShell，貼上這行裝 flyctl</strong>
           <div class="cmd">
-            <button class="copy" data-c="pwsh -Command &quot;iwr https://fly.io/install.ps1 -useb | iex&quot;">複製</button>
-            <pre>pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"</pre>
+            <button class="copy" data-c="iwr https://fly.io/install.ps1 -useb | iex">複製</button>
+            <pre>iwr https://fly.io/install.ps1 -useb | iex</pre>
           </div>
           <span class="hint">裝完會叫你「重開終端機」，照做，不然打 <code>fly</code> 會說找不到指令。</span>
         </li>
@@ -332,6 +332,16 @@
           <span class="hint">後面所有指令都要在這個資料夾裡打，因為 Fly 要讀這裡的 <code>fly.toml</code>。</span>
         </li>
       </ol>
+
+      <div class="callout warn">
+        <span class="ic">🪟</span>
+        <p><b class="lbl">Fly 官網那行不要照抄。</b>官方文件寫的是 <code>pwsh -Command "iwr …"</code>，<code>pwsh</code> 是 <b>PowerShell 7</b> 的指令。你這台裝的是 Windows 內建的 <b>PowerShell 5.1</b>，照抄會噴「<u>無法辨識 'pwsh' 詞彙</u>」。上面步驟 1 已經把外殼拿掉了，直接用那版即可。</p>
+        <p>若步驟 1 改噴 TLS / SSL 連線錯誤（PS 5.1 偶發），先跑下面這行升到 TLS 1.2，再重試一次步驟 1：</p>
+      </div>
+      <div class="cmd">
+        <button class="copy" data-c="[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12">複製</button>
+        <pre>[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12</pre>
+      </div>
     </div>
   </section>
 
@@ -577,6 +587,7 @@ fly secrets set `
     </div>
     <div class="card">
       <ol class="steps">
+        <li><strong>「無法辨識 <code>pwsh</code> 詞彙」</strong><span class="hint">你抄到 Fly 官網的 PowerShell 7 版指令了。把 <code>pwsh -Command "…"</code> 這層外殼拿掉，只留引號裡面那段，見 Phase 1 步驟 1。</span></li>
         <li><strong><code>fly</code> 不是可辨識的指令</strong><span class="hint">flyctl 裝完沒重開終端機。關掉 PowerShell 重開一個再試。</span></li>
         <li><strong>Build 失敗</strong><span class="hint">先打 <code>fly logs</code> 看錯在哪。若是記憶體不足（build 被 kill），把 <code>fly.toml</code> 的 <code>memory</code> 暫時改成 <code>1gb</code> 再 deploy 一次。</span></li>
         <li><strong>網頁開得出來但一直 502 / 轉圈</strong><span class="hint">port 對不上。確認 <code>fly.toml</code> 的 <code>internal_port = 8080</code> 跟 <code>Dockerfile</code> 的 <code>EXPOSE 8080</code> 一致（我已經對好了，除非有人改過）。</span></li>
