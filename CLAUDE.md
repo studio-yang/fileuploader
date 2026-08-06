@@ -7,7 +7,11 @@
 
 ## 🎯 一句話總覽
 
-彰化商業銀行檔案傳輸平台（FileUploader），Next.js + Vercel，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入 + Brevo 寄信 + UX v2.0 全 30 項 + Mobile RWD + Lottie + PWA/SW + **i18n 繁中/英文**。UX v2.0 全部完成。
+彰化商業銀行檔案傳輸平台（FileUploader），Next.js + **Fly.io**，**已實作**：Email OTP 登入 + 白名單管理 + IP Rate Limit／封鎖 + 記住裝置（30天）+ IP 封鎖警示信 + TOTP 備援登入 + Brevo 寄信 + UX v2.0 全 30 項 + Mobile RWD + Lottie + PWA/SW + **i18n 繁中/英文**。
+
+> 🔴 **2026-08-06/07 重大變更：主站已從 Vercel 遷移到 Fly.io。**
+> 原因：`vercel.app` 與 `zeabur.app` 都被行內資安處的 **F-ISAC 網域封鎖**，同仁連不進去。
+> `tdoc-fileflow.fly.dev` **已在行內實測可達、可登入**，Vercel 舊站保留作備援。
 
 ---
 
@@ -26,8 +30,10 @@
 | 項目 | 內容 |
 |------|------|
 | Repo | https://github.com/studio-yang/fileuploader |
-| 部署 URL | https://chb-fileuploader.vercel.app |
-| 平台 | Vercel（自動部署 main 分支）|
+| 部署 URL（主）| **https://tdoc-fileflow.fly.dev** ← 行內唯一連得進去的 |
+| 部署 URL（備援）| https://chb-fileuploader.vercel.app ← ⚠️ 行內被 F-ISAC 擋 |
+| 平台 | **Fly.io**（`fly deploy` 手動部署，非 push 自動）／ Vercel 備援 |
+| Fly app 名稱 | `tdoc-fileflow`，region `nrt`（東京）|
 | Owner | 彰銀資訊部 員工 **176752** |
 | Owner Email | alan0109@mail2000.com.tw |
 | 主要分支 | `main` |
@@ -138,6 +144,22 @@ fileuploader/
 
 ## 🚧 待辦（目前進度）
 
+### 🔴 現在最優先（2026-08-07 交接）
+
+| # | 待辦 | 說明 |
+|---|------|------|
+| 1 | **10 個 commit 尚未 push** | `git push origin main`。Claude 的權限被守衛擋住，**必須由使用者手動執行** |
+| 2 | **行內實測 Drive 上傳／下載** | 認證已驗證通過（`oauth.ok: true`），但「瀏覽器 → googleapis.com」這段在行內尚未實測。這是最後一塊拼圖 |
+| 3 | **量測 refresh token 存活天數** | 見「Drive OAuth 401」章節。`2026-08-07` 的新 token 是第一個有明確起算點的樣本，**別浪費這次機會** |
+| 4 | 每週看 Fly Billing | 無支出上限，只能人工盯 |
+
+### ⚠️ 行內網路封鎖的已知範圍（很重要）
+
+- ❌ `vercel.app`、`zeabur.app` — 確認被擋
+- ✅ `fly.dev` — **實測可通**
+- ⚠️ 使用者回報「行內會阻擋 Drive/GitHub 關連的網址」，但也說**過去在行內用 Drive 上傳下載都正常**。兩者矛盾，**尚未釐清**，待辦 #2 會給出答案
+- 若證實 Drive/GitHub 網域真的被擋 → 檔案必須改走伺服器端（**零件已存在**：`/api/download/gdrive/[fileId]`、`/api/upload/gdrive` 都是現成的伺服器端串流路由，工作是「重新接線」而非從零開發）
+
 ### ✅ 已完成：UI/UX 全面優化（方案 4） — 全 30 項
 
 > 圖例：☐ 未做 / 🔄 進行中 / ✅ 完成
@@ -189,15 +211,38 @@ fileuploader/
 
 ### 已知無效的「快速修法」
 - ❌ Service Account：個人帳號 SA 沒儲存配額
-- ❌ Client Secret rotation：反而觸發 token 失效
+- ❌ Client Secret rotation：反而觸發 token 失效（**官方確認**：換 secret 會讓該 client 底下所有 refresh token 一次失效）
 - ❌ OAuth Playground 重產 refresh token：撐不久就再壞
 
-### 下次接手必須調查的根因方向
-1. **OAuth Client 的 User Type**：External vs Internal — External 但未通過 Google 驗證的 app，refresh token **7 天就過期**
-2. **單一 user/client 的 refresh token 上限 50 個**：超過會自動撤銷最舊的
-3. **OAuth Client 是否被 Google 安全機制標記**
-4. **觀察單一 token 存活天數**，找出觸發過期的條件
-5. 使用者用個人 Google 帳號，**沒 Workspace** → Domain-Wide Delegation 不適用
+### 2026-08-07 調查進度（重要，別重複走冤枉路）
+
+**已排除的原因：**
+| 原因 | 判定依據 |
+|------|---------|
+| ❌ 發佈狀態「測試中」→ 7 天過期 | **已確認發佈狀態本來就是「正式版」** |
+| ❌ Token 6 個月未使用 | 天天在用 |
+| ❌ 改密碼 + Gmail scope | 用的是 Drive scope |
+
+**目前最大嫌疑：單一帳號 refresh token 累積超過上限（50）**
+超過時 Google 會**靜默撤銷最舊的**，形成自我強化迴圈：
+壞掉 → 重產 → 舊的沒清 → 總數 +1 → 更快被擠掉 → 再重產…
+這解釋了「重產一次撐不久就再壞」。
+
+**下一步該做的事（關鍵）：**
+1. 🔬 **量測 token 存活天數** — `2026-08-07` 產生了一顆新 token 並驗證有效（`oauth.ok: true`），**這是第一次有明確起算點**。每 2～3 天打健檢看 `oauth.ok`，記下變 `false` 的日期
+   - 約 7 天死 → 仍有政策性過期，重查驗證狀態
+   - **重產新 token 後就死 → 確認是 50 上限**
+   - 無規律 → 查帳戶活動有無外部撤銷
+2. 若要重置累積量：[Google 帳戶 → 第三方存取權](https://myaccount.google.com/permissions) 移除該應用 → 再產一顆
+   ⚠️ 這會連 Vercel 在用的那顆一起殺掉
+3. 使用者用個人 Google 帳號，**沒 Workspace** → Domain-Wide Delegation 不適用
+
+### 健檢端點（診斷 Drive 必用）
+```
+https://tdoc-fileflow.fly.dev/api/upload/gdrive-health
+```
+看 `env.ok` / `oauth.ok` / `folder.ok` 三個欄位。`oauth.ok` 才是 refresh token 有效性的證明。
+⚠️ 這支曾因被 Next.js 靜態化而**回傳建置時的假快照**，已於 `dba61ad` 加 `force-dynamic` 修正。
 
 ### 最新 commit
 - `1889ab6` `/api/files/proxy` 解決外部 URL CORS
@@ -348,9 +393,47 @@ fileuploader/
 - `npm run build`
 - **預期錯誤（不必修）**：`[gdrive-token] Error: No refresh token` — 本機無 Google OAuth token，Vercel 上正常
 
-### 部署
-- push 到 main → Vercel 自動部署
-- env var 改後通常即時生效；若沒生效 → Vercel Dashboard → Deployments → Redeploy
+### 部署（主站 = Fly.io）
+
+```bash
+fly deploy --remote-only        # 從本機檔案部署，不經 GitHub
+fly status                      # STATE=started + CHECKS=passing 才算成功
+fly logs                        # 除錯
+fly secrets list                # 看有哪些 secrets（不顯示值）
+fly ssh console -C "free -m"    # 進機器看記憶體
+```
+
+- ⚠️ **不是 push 自動部署** —— `fly deploy` 讀的是**本機檔案**，跟 GitHub 無關
+- ⚠️ **不要用網頁版 Launch UI** —— 會覆寫 `fly.toml`、把 `[build.args]` 洗掉
+- ⚠️ **`fly deploy` 常誤報失敗** —— 出現 `net/http: request canceled` / `wsarecv` 是本機連 Fly API 斷線，**先跑 `fly status` 確認**再決定要不要重跑
+- 完整操作手冊：`docs/fly-deploy-manual.html`
+- 備援：Vercel 仍可 push 到 main 自動部署（但行內連不進去）
+
+### 🕳️ Fly.io 六個實戰坑（全部已修，勿回退）
+
+> 共同點：**沒有一個是 Fly 的問題**，全是這 app 第一次離開 Vercel serverless 才浮現的。Vercel 幫忙擋掉了，所以以前遇不到。
+
+| # | 症狀 | 真因 | 修法（在哪） |
+|---|------|------|------------|
+| 1 | `npm ci` 說 `Missing: gaxios@7` | lock 檔由 npm 11 產、鏡像內是 npm 10 | Dockerfile `npm install -g npm@11` |
+| 2 | `gyp ERR! find Python` | `mem0ai` 帶進原生模組 `better-sqlite3`，alpine 無編譯器 | Dockerfile `apk add python3 make g++` |
+| 3 | health check `connection refused` | Fly 注入 `HOSTNAME=<machine-id>`，`next start` 拿它當綁定位址而退回 localhost | Dockerfile CMD 加 `-H` |
+| 4 | health check `connection refused`（**同訊息、不同病因**）| 綁 `0.0.0.0` 只有 IPv4，**Fly 內網是 IPv6** | CMD 改綁 `-H ::`（雙棧）|
+| 5 | 機器停掉後外部一直 502 | **誤判** — 真因是 #4。IPv6 修好後 auto-stop 完全正常（冷啟動 10.3 秒）| `fly.toml` auto_stop 已重新啟用 |
+| 6 | 環境變數明明有，API 卻說全部缺失 | 該 route 被 Next.js **靜態化**，回傳建置時快照。Vercel 建置時就注入 env 所以剛好正確，Fly 的 secrets 是執行期才注入 | `export const dynamic = 'force-dynamic'` |
+
+⚠️ **坑 3/4 和坑 5 的教訓：一次只改一件事。** 當初同一輪改了 IPv6 綁定又關掉 auto-stop，導致歸因錯誤，把「auto-stop 不可用」寫進文件，事後才發現是冤枉的。
+
+⚠️ **坑 6 值得全域檢查**：build log 的路由表裡 `○` = 靜態、`ƒ` = 動態。**任何讀 `process.env` 的 GET route 若是 `○` 就會回傳假資料**。目前全站只有 `gdrive-health` 中招且已修。
+
+### 💰 Fly.io 費用（無支出上限，要自己盯）
+
+- 機器：`shared-cpu-1x / 256MB` + auto-stop → **約 US$0.5/月**
+- 流量：東京 **US$0.04/GB，無免費額度**；進站免費、出站計費
+- 🔴 **Fly 不提供支出上限，也沒有帳單警示**（預付點數也不是上限，用完直接扣卡）
+- 🔴 因行內擋 Drive/GitHub 網域，檔案可能必須穿過 Fly，這筆流量費省不掉
+- ✅ **請每週看一次 Fly 後台 Billing**，這是目前唯一的煞車
+- 復原開關都寫在 `fly.toml` 註解裡（記憶體不夠改回 512、嫌冷啟動慢改回常駐）
 
 ---
 
@@ -398,6 +481,13 @@ Step 2（驗證碼輸入）
 
 | Commit | 訊息 | 日期 |
 |--------|------|------|
+| `dba61ad` | fix: force-dynamic on gdrive-health（修好回傳建置快照的假健檢）| 2026-08-07 |
+| `1bc590d` | perf: 重開 auto-stop + 降 256MB（證實 502 死結真因是 IPv6）| 2026-08-06 |
+| `6623b11` | docs: Fly 手冊補上實測結果與 5 個坑 | 2026-08-06 |
+| `9f80db5` | fix: 讓 Fly 部署跑起來（npm 11 / 編譯工具鏈 / IPv6 綁定 / 常駐）| 2026-08-06 |
+| `b145562` | chore: Fly app 改名 tdoc-fileflow | 2026-08-06 |
+| `d7fb5ce` | docs: 修正 flyctl 安裝指令（Windows PowerShell 5.1 無 pwsh）| 2026-08-06 |
+| `49ad71c` | chore: 備援平台從 Koyeb 改為 Fly.io | 2026-08-06 |
 | `ca0e859` | feat: i18n zh-TW/en (#20) — next-intl 4.12, locale switcher, 全元件翻譯 |
 | `797754a` | feat: Lottie empty state animation (#8) |
 | `b0f9e68` | feat: PWA + Service Worker (#17 #18) |
@@ -419,9 +509,12 @@ Step 2（驗證碼輸入）
 
 ## 📞 接手時建議的第一句話
 
-> 「我已讀完 CLAUDE.md，目前無進行中需求。最後完成的是 UX v2.0 全面實作（`508e231`）。請問有什麼新需求？」
+> 「我已讀完 CLAUDE.md。主站已遷移到 Fly.io（`tdoc-fileflow.fly.dev`），行內實測可達且能登入，Drive 認證也驗證通過（`dba61ad`）。
+> 目前有三件待辦：① 10 個 commit 還沒 push ② 行內 Drive 上傳尚未實測 ③ refresh token 存活天數要開始量測。
+> 請問要先處理哪一項？」
 
 ---
 
-*最後更新：2026-05-28*
-*更新者：Claude Sonnet 4.6 (session 4 — i18n)*
+*最後更新：2026-08-07*
+*更新者：Claude Opus 5（session 5 — Vercel → Fly.io 遷移）*
+*本次 session 摘要：因 F-ISAC 封鎖 `vercel.app`，將主站遷移至 Fly.io。踩過並修好 6 個坑（見「Fly.io 六個實戰坑」），行內實測站台可達、可登入，Drive 認證驗證通過。Koyeb 方案已廢棄並移除。*
