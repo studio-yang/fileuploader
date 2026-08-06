@@ -1,0 +1,517 @@
+<title>Koyeb 部署手冊 · FileFlow</title>
+<style>
+  :root {
+    /* 中性底：帶藍偏移的 slate，呼應 FileFlow 產品識別，而非純灰 */
+    --bg:        #eef1f7;
+    --surface:   #ffffff;
+    --surface-2: #f5f7fc;
+    --ink:       #1a2340;   /* 產品信件用的深藍墨色 */
+    --ink-soft:  #4a5578;
+    --ink-faint: #7a839f;
+    --line:      #dde3ef;
+    --line-soft: #e8ecf5;
+    --accent:    #0a5fe0;   /* 由產品 #0066ff 收斂而來 */
+    --accent-ink:#0847a8;
+    --accent-wash:#e8f0fe;
+    --good:      #1e9e6a;
+    --good-wash: #e4f5ec;
+    --warn:      #c77a0a;
+    --warn-wash: #fbf1df;
+    --danger:    #d8443c;
+    --danger-wash:#fdeceb;
+    --mono: "Cascadia Code", "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+    --cjk: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --shadow: 0 1px 2px rgba(26,35,64,.04), 0 8px 28px -12px rgba(26,35,64,.18);
+    --shadow-lift: 0 2px 4px rgba(26,35,64,.06), 0 20px 44px -18px rgba(26,35,64,.28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #0d1017;
+      --surface:   #161b26;
+      --surface-2: #1c2230;
+      --ink:       #eef1f8;
+      --ink-soft:  #aab3cc;
+      --ink-faint: #79839e;
+      --line:      #29313f;
+      --line-soft: #222836;
+      --accent:    #5c9bff;
+      --accent-ink:#9cc0ff;
+      --accent-wash:#16263f;
+      --good:      #3fce93;
+      --good-wash: #14271f;
+      --warn:      #e0a24a;
+      --warn-wash: #2a2013;
+      --danger:    #f2685f;
+      --danger-wash:#2c1817;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.6);
+      --shadow-lift: 0 2px 6px rgba(0,0,0,.4), 0 24px 50px -18px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#eef1f7;--surface:#fff;--surface-2:#f5f7fc;--ink:#1a2340;--ink-soft:#4a5578;--ink-faint:#7a839f;
+    --line:#dde3ef;--line-soft:#e8ecf5;--accent:#0a5fe0;--accent-ink:#0847a8;--accent-wash:#e8f0fe;
+    --good:#1e9e6a;--good-wash:#e4f5ec;--warn:#c77a0a;--warn-wash:#fbf1df;--danger:#d8443c;--danger-wash:#fdeceb;
+    --shadow:0 1px 2px rgba(26,35,64,.04),0 8px 28px -12px rgba(26,35,64,.18);
+    --shadow-lift:0 2px 4px rgba(26,35,64,.06),0 20px 44px -18px rgba(26,35,64,.28);
+  }
+  :root[data-theme="dark"] {
+    --bg:#0d1017;--surface:#161b26;--surface-2:#1c2230;--ink:#eef1f8;--ink-soft:#aab3cc;--ink-faint:#79839e;
+    --line:#29313f;--line-soft:#222836;--accent:#5c9bff;--accent-ink:#9cc0ff;--accent-wash:#16263f;
+    --good:#3fce93;--good-wash:#14271f;--warn:#e0a24a;--warn-wash:#2a2013;--danger:#f2685f;--danger-wash:#2c1817;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -14px rgba(0,0,0,.6);
+    --shadow-lift:0 2px 6px rgba(0,0,0,.4),0 24px 50px -18px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--cjk); line-height: 1.72; font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 812px; margin: 0 auto; padding: 0 22px 96px; }
+
+  /* ---------- Header ---------- */
+  header.masthead {
+    padding: 56px 0 30px; border-bottom: 1px solid var(--line);
+    margin-bottom: 8px;
+  }
+  .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent-ink); font-weight: 700;
+    background: var(--accent-wash); padding: 5px 11px; border-radius: 100px;
+  }
+  h1 {
+    font-size: clamp(30px, 5vw, 43px); line-height: 1.12; margin: 18px 0 10px;
+    letter-spacing: -.02em; text-wrap: balance; font-weight: 800;
+  }
+  .lede { font-size: 17px; color: var(--ink-soft); max-width: 60ch; margin: 0; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 22px;
+  }
+  .chip {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    font-size: 12.5px; color: var(--ink-soft);
+    background: var(--surface); border: 1px solid var(--line);
+    padding: 6px 12px; border-radius: 8px;
+  }
+  .chip b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Blocks ---------- */
+  section { margin-top: 40px; }
+  .phase-head {
+    display: flex; align-items: center; gap: 15px; margin: 0 0 6px;
+  }
+  .phase-num {
+    flex: none; width: 40px; height: 40px; border-radius: 11px;
+    display: grid; place-items: center;
+    background: var(--ink); color: var(--surface);
+    font-family: var(--mono); font-weight: 700; font-size: 17px;
+    box-shadow: var(--shadow);
+  }
+  .phase-head h2 { font-size: 23px; margin: 0; letter-spacing: -.01em; font-weight: 750; }
+  .phase-sub { color: var(--ink-faint); font-size: 13.5px; margin: 2px 0 0 55px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 15px; padding: 24px 26px; margin-top: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* numbered step list */
+  ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; }
+  ol.steps > li {
+    position: relative; counter-increment: s;
+    padding: 0 0 18px 40px; margin: 0;
+  }
+  ol.steps > li:last-child { padding-bottom: 0; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: 1px;
+    width: 25px; height: 25px; border-radius: 50%;
+    background: var(--accent-wash); color: var(--accent-ink);
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  ol.steps > li::after {
+    content: ""; position: absolute; left: 12px; top: 29px; bottom: 4px;
+    width: 1.5px; background: var(--line);
+  }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps strong { font-weight: 700; }
+  ol.steps .hint { display: block; color: var(--ink-faint); font-size: 13.5px; margin-top: 2px; }
+
+  /* inline code + path bubble */
+  code {
+    font-family: var(--mono); font-size: .88em;
+    background: var(--surface-2); border: 1px solid var(--line-soft);
+    padding: 1.5px 6px; border-radius: 6px; color: var(--accent-ink);
+    word-break: break-all;
+  }
+  .path {
+    font-family: var(--mono); font-size: 13px; color: var(--ink-soft);
+    background: var(--surface-2); border: 1px solid var(--line-soft);
+    border-radius: 8px; padding: 8px 12px; margin: 8px 0;
+    display: block; word-break: break-word;
+  }
+  .path b { color: var(--ink); }
+
+  /* callouts */
+  .callout {
+    display: grid; grid-template-columns: auto 1fr; gap: 13px;
+    border-radius: 13px; padding: 15px 18px; margin: 16px 0 0;
+    font-size: 14.5px; line-height: 1.62;
+  }
+  .callout .ic { font-size: 17px; line-height: 1.5; }
+  .callout p { margin: 0; }
+  .callout.warn   { background: var(--warn-wash);   border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent); }
+  .callout.danger { background: var(--danger-wash); border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent); }
+  .callout.good   { background: var(--good-wash);   border: 1px solid color-mix(in srgb, var(--good) 32%, transparent); }
+  .callout.info   { background: var(--accent-wash); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+  .callout b.lbl { font-weight: 800; }
+
+  /* env table */
+  .tbl-wrap { overflow-x: auto; margin-top: 16px; border-radius: 13px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; min-width: 540px; background: var(--surface); font-size: 14px; }
+  thead th {
+    text-align: left; padding: 12px 16px; background: var(--surface-2);
+    color: var(--ink-soft); font-weight: 700; font-size: 12px;
+    letter-spacing: .05em; text-transform: uppercase; border-bottom: 1px solid var(--line);
+  }
+  tbody td { padding: 11px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  .kname { display: inline-flex; align-items: center; gap: 7px; }
+  .kname code { color: var(--ink); background: var(--surface-2); }
+  .src { color: var(--ink-faint); font-size: 13px; }
+  .req { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--danger); }
+
+  /* copy button */
+  .copy {
+    font-family: var(--mono); font-size: 11px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink-faint); border-radius: 6px; padding: 2px 7px;
+    transition: all .15s ease;
+  }
+  .copy:hover { color: var(--accent-ink); border-color: var(--accent); }
+  .copy.done { color: var(--good); border-color: var(--good); }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* decision tree */
+  .fork { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  .fork .branch { border-radius: 14px; padding: 20px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+  .fork .branch h4 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .fork .yes h4 { color: var(--good); }
+  .fork .no  h4 { color: var(--danger); }
+  .fork ul { margin: 6px 0 0; padding-left: 18px; color: var(--ink-soft); font-size: 14px; }
+  .fork li { margin: 4px 0; }
+
+  /* checklist */
+  .check { list-style: none; margin: 0; padding: 0; }
+  .check li {
+    display: flex; align-items: flex-start; gap: 11px; padding: 9px 0;
+    border-bottom: 1px dashed var(--line-soft); font-size: 14.5px;
+  }
+  .check li:last-child { border-bottom: none; }
+  .check .box {
+    flex: none; width: 19px; height: 19px; border-radius: 5px; margin-top: 3px;
+    border: 1.5px solid var(--ink-faint);
+  }
+
+  p.para { margin: 12px 0 0; color: var(--ink-soft); }
+  p.para:first-child { margin-top: 0; }
+  .body-tight { color: var(--ink); }
+  hr.soft { border: none; border-top: 1px solid var(--line); margin: 44px 0 0; }
+
+  a { color: var(--accent-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+  a:hover { border-bottom-color: var(--accent); }
+
+  .foot { margin-top: 40px; color: var(--ink-faint); font-size: 13px; text-align: center; }
+
+  @media (max-width: 560px) {
+    .fork { grid-template-columns: 1fr; }
+    .phase-sub { margin-left: 0; }
+    .wrap { padding: 0 16px 72px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <span class="kicker">FileFlow · 站台遷移手冊</span>
+    <h1>把站台部署到 Koyeb</h1>
+    <p class="lede">照著做就能把 FileFlow 從 Vercel 搬到 Koyeb，繞過資安處的 F-ISAC 網域封鎖。每一步都寫給第一次操作的人看。</p>
+    <div class="meta">
+      <span class="chip">預估時間 <b>60–90 分</b></span>
+      <span class="chip">程式已就緒 <b>commit bf01fcf</b></span>
+      <span class="chip">成功機率 <b>30–40%</b></span>
+      <span class="chip">費用 <b>免費方案</b></span>
+    </div>
+  </header>
+
+  <div class="callout danger" style="margin-top:26px">
+    <span class="ic">⚠️</span>
+    <p><b class="lbl">先講白話，別抱太大期望。</b><code>vercel.app</code> 和 <code>zeabur.app</code> 都已經被 F-ISAC 擋掉了，代表這波掃得很乾淨。Koyeb 只是「比較冷門、可能還沒進名單」，我估成功率 <b>30–40%</b>。這份手冊做完約 1.5 小時工，就算最後行內連不進去，也等於幫我們確認「免費雲子網域這條路走不通」，下一步就直接走白名單申請 + 綁自有網域（治本）。不算白做。</p>
+  </div>
+
+  <!-- ============ 準備 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">0</div>
+      <h2>開始前，先備齊這四樣</h2>
+    </div>
+    <p class="phase-sub">缺一樣就會中途卡住，先確認手邊都有。</p>
+    <div class="card">
+      <ul class="check">
+        <li><span class="box"></span><div><strong>能登入 GitHub</strong>（就是 <code>studio-yang</code> 這個帳號，程式放在它底下）</div></li>
+        <li><span class="box"></span><div><strong>能打開 Vercel 後台</strong> — 待會要從這裡把環境變數一個個抄過去</div></li>
+        <li><span class="box"></span><div><strong>能打開 Google Cloud Console</strong> — Drive 上傳的 OAuth 設定要加一條新網址</div></li>
+        <li><span class="box"></span><div><strong>一支手機，可以開 4G 熱點</strong> — 部署完先用手機（非行內網路）自測功能</div></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ Phase 1 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">1</div>
+      <h2>註冊 Koyeb，建立服務</h2>
+    </div>
+    <p class="phase-sub">用 GitHub 登入最省事，它會自動抓到你的程式庫。</p>
+    <div class="card">
+      <ol class="steps">
+        <li><strong>開 <a href="https://app.koyeb.com" target="_blank" rel="noopener">app.koyeb.com</a>，點「Sign up with GitHub」</strong><span class="hint">用 GitHub 登入，之後選 repo 不用再授權第二次。</span></li>
+        <li><strong>進到主畫面後，點「Create Web Service」</strong><span class="hint">若看到的是「Create Service」也一樣，選 Web Service。</span></li>
+        <li><strong>部署來源選「GitHub」</strong><span class="hint">另一個選項是 Docker image，我們不用。</span></li>
+        <li><strong>第一次會要你安裝 Koyeb 的 GitHub App</strong><span class="hint">跳出 GitHub 授權頁時，選「Only select repositories」→ 勾 <code>studio-yang/fileuploader</code> → Install。只給這一個 repo 權限就好。</span></li>
+        <li><strong>回到 Koyeb，選 repository：<code>fileuploader</code>，branch：<code>main</code></strong></li>
+        <li><strong>Builder 這格請確認顯示「Buildpack」</strong><span class="hint">Koyeb 會自動認出這是 Next.js。若之後 build 失敗，再改用 Dockerfile（見文末排錯）。</span></li>
+      </ol>
+      <div class="callout danger">
+        <span class="ic">⚠️</span>
+        <p><b class="lbl">務必檢查 Builder 那格。</b>repo 裡現在放了一份備用 <code>Dockerfile</code>，Koyeb 有可能<u>自動把 Builder 切成「Dockerfile」</u>。我們這輪要<b>先試 Buildpack</b>（比較單純），所以請手動確認它顯示的是 <b>Buildpack</b>。兩種都能跑，但先照計畫走 Buildpack，卡住再切 Dockerfile。</p>
+      </div>
+      <div class="callout info">
+        <span class="ic">💡</span>
+        <p><b class="lbl">Instance / Region 這樣選：</b>Instance 選 <b>Free</b>（512MB）。Region 免費方案只有兩個：<b>Washington, D.C.</b> 和 <b>Frankfurt</b> — 選跟你 Upstash Redis 同一區或最近的那個，登入才不會因為跨海變慢。不確定 Redis 在哪區就先選 <b>Washington, D.C.</b>。</p>
+      </div>
+      <div class="callout warn">
+        <span class="ic">🔌</span>
+        <p><b class="lbl">Port 不用改。</b>Koyeb 會自動給程式一個 <code>PORT</code>，Next.js 會自己讀，維持預設即可。Health check path 填 <code>/</code>。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Phase 2 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">2</div>
+      <h2>填環境變數</h2>
+    </div>
+    <p class="phase-sub">在建立畫面往下捲到「Environment variables」，一條一條加。值全部從 Vercel 後台抄。</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>變數名稱</th><th>值 / 來源</th><th style="width:64px">必填</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="kname"><code>AUTH_SECRET</code><button class="copy" data-c="AUTH_SECRET">複製</button></span></td>
+            <td class="src">從 Vercel 抄，<b style="color:var(--danger)">務必用同一組</b>，否則已登入的人 session 全失效</td>
+            <td><span class="req">必填</span></td>
+          </tr>
+          <tr>
+            <td><span class="kname"><code>REDIS_URL</code><button class="copy" data-c="REDIS_URL">複製</button></span></td>
+            <td class="src">從 Vercel 抄（<code>rediss://…</code> 開頭）</td>
+            <td><span class="req">必填</span></td>
+          </tr>
+          <tr>
+            <td><span class="kname"><code>BREVO_API_KEY</code><button class="copy" data-c="BREVO_API_KEY">複製</button></span></td>
+            <td class="src">從 Vercel 抄（寄 OTP 信用）</td>
+            <td><span class="req">必填</span></td>
+          </tr>
+          <tr>
+            <td><span class="kname"><code>BREVO_SENDER</code><button class="copy" data-c="BREVO_SENDER">複製</button></span></td>
+            <td class="src"><code>alan0109@mail2000.com.tw</code></td>
+            <td><span class="req">必填</span></td>
+          </tr>
+          <tr>
+            <td><span class="kname"><code>OTP_RECIPIENT</code><button class="copy" data-c="OTP_RECIPIENT">複製</button></span></td>
+            <td class="src"><code>alan0109@mail2000.com.tw</code></td>
+            <td><span class="req">必填</span></td>
+          </tr>
+          <tr>
+            <td><span class="kname"><code>GOOGLE_*</code></span></td>
+            <td class="src">Vercel 上所有 <code>GOOGLE_</code> 開頭的變數全部抄過來（Client ID / Secret / refresh token 那組，Drive 上傳用）</td>
+            <td><span class="req">必填</span></td>
+          </tr>
+          <tr>
+            <td><span class="kname"><code>NEXT_PUBLIC_APP_URL</code><button class="copy" data-c="NEXT_PUBLIC_APP_URL">複製</button></span></td>
+            <td class="src"><b>先跳過這條！</b>它的值是 Koyeb 網址，但要部署完才知道。Phase 3 再回來補。</td>
+            <td><span class="req">稍後</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="ic">📋</span>
+      <p><b class="lbl">怎麼從 Vercel 抄？</b>Vercel 後台 → 選 <code>fileuploader</code> 專案 → <b>Settings → Environment Variables</b>。每條點眼睛圖示顯示明文，複製貼到 Koyeb 對應欄位。Koyeb 環境變數區也有「Bulk edit」可一次貼多條，格式是 <code>KEY=value</code> 每行一條。</p>
+    </div>
+    <div class="callout info">
+      <span class="ic">🔑</span>
+      <p><b class="lbl">怎麼分辨哪些是 <code>GOOGLE_</code> 變數？</b>在 Vercel 環境變數清單裡，名字開頭是 <code>GOOGLE_</code> 的全部都要（通常有 client id、client secret、refresh token、folder id 之類）。寧可多抄，不要漏。</p>
+    </div>
+  </section>
+
+  <!-- ============ Phase 3 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">3</div>
+      <h2>首次部署 → 拿網址 → 回填最後一條變數</h2>
+    </div>
+    <p class="phase-sub">這裡有個「先有雞還是先有蛋」的小關卡，照順序做就好。</p>
+    <div class="card">
+      <ol class="steps">
+        <li><strong>幫服務取個名字（App name）</strong><span class="hint">例如 <code>chb-fileflow</code>。這個名字會變成你的網址一部分。</span></li>
+        <li><strong>點「Deploy」，等 build 跑完</strong><span class="hint">第一次約 3–6 分鐘。畫面會滾動 build log，看到 green / Healthy 就成功。</span></li>
+        <li><strong>複製 Koyeb 給你的公開網址</strong><span class="hint">長得像下面這樣（實際字尾不同）：</span>
+          <span class="path"><b>https://chb-fileflow-</b>xxxx<b>.koyeb.app</b></span>
+        </li>
+        <li><strong>回到 Settings → Environment variables，新增 <code>NEXT_PUBLIC_APP_URL</code></strong><span class="hint">值就填你上一步複製到的完整網址（含 <code>https://</code>，結尾不要斜線）。</span></li>
+        <li><strong>存檔後點「Redeploy」讓新變數生效</strong><span class="hint">封鎖警示信裡的按鈕連結要靠這條變數才會指向 Koyeb，一定要補。</span></li>
+      </ol>
+      <div class="callout good">
+        <span class="ic">✅</span>
+        <p><b class="lbl">為什麼要分兩次？</b>因為網址是 Koyeb 部署後才生成的，沒辦法事先知道。先部署拿到網址、再回填、再重新部署，這是正常流程，不是你做錯。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Phase 4 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">4</div>
+      <h2>Google OAuth 加一條重新導向網址</h2>
+    </div>
+    <p class="phase-sub">不加這步，登入沒問題，但 Drive 上傳會噴 401。</p>
+    <div class="card">
+      <ol class="steps">
+        <li><strong>開 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → Credentials</a></strong></li>
+        <li><strong>點開你現在在用的 OAuth 2.0 Client ID</strong><span class="hint">就是 Drive 上傳用的那個。</span></li>
+        <li><strong>在「授權的重新導向 URI」按「+ 新增 URI」，貼上：</strong>
+          <span class="path"><span data-uri>https://（你的 Koyeb 網址）</span><b>/api/upload/gdrive-token</b></span>
+        </li>
+        <li><strong>存檔。舊的 Vercel 那條<u>不要刪</u></strong><span class="hint">兩邊並存，這樣 Vercel 舊站還能當備援。</span></li>
+      </ol>
+      <div class="callout warn">
+        <span class="ic">⏳</span>
+        <p><b class="lbl">Google 設定有時要幾分鐘才生效。</b>如果剛加完馬上測上傳還是 401，等 5 分鐘再試一次。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Phase 5 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">5</div>
+      <h2>先用手機 4G 自測（不要用行內網路）</h2>
+    </div>
+    <p class="phase-sub">這步是確認「功能本身正常」，跟行內封鎖無關，所以用你自己的網路測。</p>
+    <div class="card">
+      <ol class="steps">
+        <li><strong>手機開 4G / 熱點，開 <code>你的Koyeb網址/login</code></strong></li>
+        <li><strong>輸入 email → 收得到 OTP 驗證碼</strong><span class="hint">收得到信 = Brevo、Redis 都通了。</span></li>
+        <li><strong>輸入驗證碼登入成功</strong></li>
+        <li><strong>傳一個小檔案，確認上傳到 Drive、清單看得到</strong><span class="hint">上傳成功 = Google OAuth 那條有生效。</span></li>
+      </ol>
+      <div class="callout good">
+        <span class="ic">🎯</span>
+        <p><b class="lbl">四項都過</b>，代表整套系統在 Koyeb 上是活的。接下來才是真正的考驗 —— 明天在行內測。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Phase 6 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">6</div>
+      <h2>關鍵驗證：明天，在行內電腦</h2>
+    </div>
+    <p class="phase-sub">這一步決定這整條路成不成。務必用<strong>行內網路</strong>的電腦測。</p>
+    <div class="card">
+      <p class="para body-tight" style="margin-top:0">在行內電腦的瀏覽器開：</p>
+      <span class="path"><b>https://（你的 Koyeb 網址）/login</b></span>
+      <div class="fork">
+        <div class="branch yes">
+          <h4>✅ 沒跳封鎖頁</h4>
+          <ul>
+            <li>成功繞過了！</li>
+            <li>跟我說一聲</li>
+            <li>我幫你把主站切到 Koyeb、更新交接文件，Vercel 舊站保留當備援</li>
+          </ul>
+        </div>
+        <div class="branch no">
+          <h4>❌ 又是 F-ISAC 封鎖頁</h4>
+          <ul>
+            <li>這條路到底了，不用再試別的免費平台</li>
+            <li>我們直接走治本：白名單申請 ＋ 綁自有網域</li>
+            <li>兩件事可以並行跑</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="soft">
+
+  <!-- ============ 排錯 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">?</div>
+      <h2>卡住了？對照這裡</h2>
+    </div>
+    <div class="card">
+      <ol class="steps">
+        <li><strong>Build 失敗（Buildpack 認不出）</strong><span class="hint">repo 裡已經備好 Dockerfile，直接到服務設定把 Builder 切成 <b>Dockerfile</b> → Save → 重跑即可，不用等我。</span></li>
+        <li><strong>網頁開得出來但一直 502 / 轉圈</strong><span class="hint">通常是 port 問題。到服務設定確認 Exposed port 用的是 Koyeb 預設值、Health check path 是 <code>/</code>。</span></li>
+        <li><strong>登入收不到 OTP 信</strong><span class="hint">先檢查 <code>BREVO_API_KEY</code>、<code>REDIS_URL</code> 有沒有抄錯或漏抄。</span></li>
+        <li><strong>能登入但上傳噴 401</strong><span class="hint">Google OAuth 重新導向 URI 沒加對，或還沒生效。回 Phase 4 核對網址、等 5 分鐘。</span></li>
+        <li><strong>第一次打開很慢（5–10 秒）</strong><span class="hint">免費方案沒人用會休眠，屬正常。若要常駐可考慮付費方案。</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ 總表 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">✓</div>
+      <h2>一次收尾檢查表</h2>
+    </div>
+    <div class="card">
+      <ul class="check">
+        <li><span class="box"></span><div>Koyeb 服務建好，build 顯示 Healthy</div></li>
+        <li><span class="box"></span><div>必填環境變數全部填好（<code>AUTH_SECRET</code> 跟 Vercel 同一組）</div></li>
+        <li><span class="box"></span><div><code>NEXT_PUBLIC_APP_URL</code> 已回填 Koyeb 網址並 Redeploy</div></li>
+        <li><span class="box"></span><div>Google OAuth 已加 <code>/api/upload/gdrive-token</code> 重新導向</div></li>
+        <li><span class="box"></span><div>手機 4G 自測：登入 ＋ 上傳都通過</div></li>
+        <li><span class="box"></span><div>（明天）行內電腦開 <code>/login</code> 沒被擋 → 通知我</div></li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="foot">FileFlow · 彰銀資訊部　|　程式面已就緒（commit bf01fcf），本手冊涵蓋 Koyeb 面板操作</p>
+
+</div>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-c');
+      navigator.clipboard.writeText(t).then(function () {
+        var old = b.textContent;
+        b.textContent = '已複製'; b.classList.add('done');
+        setTimeout(function () { b.textContent = old; b.classList.remove('done'); }, 1400);
+      });
+    });
+  });
+</script>
