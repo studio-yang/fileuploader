@@ -29,7 +29,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // API CORS（Koyeb/自架平台不吃 vercel.json，需在此宣告）
+        // API CORS（Fly.io/自架平台不吃 vercel.json，需在此宣告）
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Origin', value: '*' },

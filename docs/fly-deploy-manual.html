@@ -1,4 +1,4 @@
-<title>Koyeb 部署手冊 · FileFlow</title>
+<title>Fly.io 部署手冊 · FileFlow</title>
 <style>
   :root {
     /* 中性底：帶藍偏移的 slate，呼應 FileFlow 產品識別，而非純灰 */
@@ -155,6 +155,20 @@
   }
   .path b { color: var(--ink); }
 
+  /* 指令區塊（Fly.io 是 CLI 導向，這份手冊比 Koyeb 版多了指令） */
+  .cmd {
+    position: relative; margin: 10px 0 0;
+    background: var(--surface-2); border: 1px solid var(--line-soft);
+    border-radius: 10px; padding: 13px 15px;
+    overflow-x: auto;
+  }
+  .cmd pre {
+    margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.75;
+    color: var(--ink); white-space: pre;
+  }
+  .cmd .cm { color: var(--ink-faint); }
+  .cmd .copy { position: absolute; top: 9px; right: 9px; }
+
   /* callouts */
   .callout {
     display: grid; grid-template-columns: auto 1fr; gap: 13px;
@@ -163,6 +177,7 @@
   }
   .callout .ic { font-size: 17px; line-height: 1.5; }
   .callout p { margin: 0; }
+  .callout p + p { margin-top: 8px; }
   .callout.warn   { background: var(--warn-wash);   border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent); }
   .callout.danger { background: var(--danger-wash); border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent); }
   .callout.good   { background: var(--good-wash);   border: 1px solid color-mix(in srgb, var(--good) 32%, transparent); }
@@ -237,19 +252,25 @@
 
   <header class="masthead">
     <span class="kicker">FileFlow · 站台遷移手冊</span>
-    <h1>把站台部署到 Koyeb</h1>
-    <p class="lede">照著做就能把 FileFlow 從 Vercel 搬到 Koyeb，繞過資安處的 F-ISAC 網域封鎖。每一步都寫給第一次操作的人看。</p>
+    <h1>把站台部署到 Fly.io</h1>
+    <p class="lede">照著做就能把 FileFlow 從 Vercel 搬到 Fly.io，繞過資安處的 F-ISAC 網域封鎖。Fly.io 是打指令的，每一行指令都幫你寫好了，複製貼上就行。</p>
     <div class="meta">
-      <span class="chip">預估時間 <b>60–90 分</b></span>
-      <span class="chip">程式已就緒 <b>commit bf01fcf</b></span>
+      <span class="chip">預估時間 <b>50–70 分</b></span>
+      <span class="chip">操作方式 <b>CLI 指令</b></span>
       <span class="chip">成功機率 <b>30–40%</b></span>
-      <span class="chip">費用 <b>免費方案</b></span>
+      <span class="chip">費用 <b>需綁卡 · 約 $0–3/月</b></span>
     </div>
   </header>
 
   <div class="callout danger" style="margin-top:26px">
     <span class="ic">⚠️</span>
-    <p><b class="lbl">先講白話，別抱太大期望。</b><code>vercel.app</code> 和 <code>zeabur.app</code> 都已經被 F-ISAC 擋掉了，代表這波掃得很乾淨。Koyeb 只是「比較冷門、可能還沒進名單」，我估成功率 <b>30–40%</b>。這份手冊做完約 1.5 小時工，就算最後行內連不進去，也等於幫我們確認「免費雲子網域這條路走不通」，下一步就直接走白名單申請 + 綁自有網域（治本）。不算白做。</p>
+    <p><b class="lbl">先講白話，別抱太大期望。</b><code>vercel.app</code> 和 <code>zeabur.app</code> 都已經被 F-ISAC 擋掉了，代表這波掃得很乾淨。<code>fly.dev</code> 只是「比較冷門、可能還沒進名單」，我估成功率 <b>30–40%</b>。這份手冊做完約 1 小時工，就算最後行內連不進去，也等於幫我們確認「免費雲子網域這條路走不通」，下一步就直接走白名單申請 + 綁自有網域（治本）。不算白做。</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="ic">💳</span>
+    <p><b class="lbl">Fly.io 沒有「不綁卡的免費方案」，這點要先知道。</b>註冊時就會要你填信用卡（會扣約 <b>US$1 驗證</b>，之後退回）。</p>
+    <p>我們用的規格是 <code>shared-cpu-1x / 512MB</code>，而且在 <code>fly.toml</code> 裡開了 <b>auto stop</b>：沒人用的時候機器會自動關掉、不計費。以你自用的量估，實際帳單大概是 <b>每月 US$0～3</b>。⚠️ 這是我的估算不是保證，建議部署後第一週到 Fly 後台的 Billing 看一次實際數字。</p>
   </div>
 
   <!-- ============ 準備 ============ -->
@@ -261,11 +282,15 @@
     <p class="phase-sub">缺一樣就會中途卡住，先確認手邊都有。</p>
     <div class="card">
       <ul class="check">
-        <li><span class="box"></span><div><strong>能登入 GitHub</strong>（就是 <code>studio-yang</code> 這個帳號，程式放在它底下）</div></li>
+        <li><span class="box"></span><div><strong>一張信用卡</strong> — Fly.io 註冊必填，沒得跳過</div></li>
         <li><span class="box"></span><div><strong>能打開 Vercel 後台</strong> — 待會要從這裡把環境變數一個個抄過去</div></li>
         <li><span class="box"></span><div><strong>能打開 Google Cloud Console</strong> — Drive 上傳的 OAuth 設定要加一條新網址</div></li>
         <li><span class="box"></span><div><strong>一支手機，可以開 4G 熱點</strong> — 部署完先用手機（非行內網路）自測功能</div></li>
       </ul>
+      <div class="callout good">
+        <span class="ic">📁</span>
+        <p><b class="lbl">程式面我已經弄好了。</b>repo 裡已經有 <code>fly.toml</code>（Fly 的設定檔）和 <code>Dockerfile</code>（建置腳本），你不用改任何程式碼。全程只要在<b>你自己電腦的 PowerShell</b> 裡打指令。</p>
+      </div>
     </div>
   </section>
 
@@ -273,30 +298,40 @@
   <section>
     <div class="phase-head">
       <div class="phase-num">1</div>
-      <h2>註冊 Koyeb，建立服務</h2>
+      <h2>安裝 flyctl，註冊帳號</h2>
     </div>
-    <p class="phase-sub">用 GitHub 登入最省事，它會自動抓到你的程式庫。</p>
+    <p class="phase-sub">flyctl 是 Fly.io 的指令工具，所有操作都靠它。</p>
     <div class="card">
       <ol class="steps">
-        <li><strong>開 <a href="https://app.koyeb.com" target="_blank" rel="noopener">app.koyeb.com</a>，點「Sign up with GitHub」</strong><span class="hint">用 GitHub 登入，之後選 repo 不用再授權第二次。</span></li>
-        <li><strong>進到主畫面後，點「Create Web Service」</strong><span class="hint">若看到的是「Create Service」也一樣，選 Web Service。</span></li>
-        <li><strong>部署來源選「GitHub」</strong><span class="hint">另一個選項是 Docker image，我們不用。</span></li>
-        <li><strong>第一次會要你安裝 Koyeb 的 GitHub App</strong><span class="hint">跳出 GitHub 授權頁時，選「Only select repositories」→ 勾 <code>studio-yang/fileuploader</code> → Install。只給這一個 repo 權限就好。</span></li>
-        <li><strong>回到 Koyeb，選 repository：<code>fileuploader</code>，branch：<code>main</code></strong></li>
-        <li><strong>Builder 這格請確認顯示「Buildpack」</strong><span class="hint">Koyeb 會自動認出這是 Next.js。若之後 build 失敗，再改用 Dockerfile（見文末排錯）。</span></li>
+        <li><strong>開 PowerShell，貼上這行裝 flyctl</strong>
+          <div class="cmd">
+            <button class="copy" data-c="pwsh -Command &quot;iwr https://fly.io/install.ps1 -useb | iex&quot;">複製</button>
+            <pre>pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"</pre>
+          </div>
+          <span class="hint">裝完會叫你「重開終端機」，照做，不然打 <code>fly</code> 會說找不到指令。</span>
+        </li>
+        <li><strong>重開 PowerShell，確認裝好了</strong>
+          <div class="cmd">
+            <button class="copy" data-c="fly version">複製</button>
+            <pre>fly version</pre>
+          </div>
+          <span class="hint">有印出版本號就是成功。</span>
+        </li>
+        <li><strong>註冊帳號（會開瀏覽器）</strong>
+          <div class="cmd">
+            <button class="copy" data-c="fly auth signup">複製</button>
+            <pre>fly auth signup</pre>
+          </div>
+          <span class="hint">選 Sign up with GitHub 最快。註冊流程中會要你填信用卡，填完才能建 app。<br>如果你已經有 Fly 帳號，改打 <code>fly auth login</code>。</span>
+        </li>
+        <li><strong>切換到專案資料夾</strong>
+          <div class="cmd">
+            <button class="copy" data-c="cd C:\Users\Alan\Projects\fileuploader">複製</button>
+            <pre>cd C:\Users\Alan\Projects\fileuploader</pre>
+          </div>
+          <span class="hint">後面所有指令都要在這個資料夾裡打，因為 Fly 要讀這裡的 <code>fly.toml</code>。</span>
+        </li>
       </ol>
-      <div class="callout danger">
-        <span class="ic">⚠️</span>
-        <p><b class="lbl">務必檢查 Builder 那格。</b>repo 裡現在放了一份備用 <code>Dockerfile</code>，Koyeb 有可能<u>自動把 Builder 切成「Dockerfile」</u>。我們這輪要<b>先試 Buildpack</b>（比較單純），所以請手動確認它顯示的是 <b>Buildpack</b>。兩種都能跑，但先照計畫走 Buildpack，卡住再切 Dockerfile。</p>
-      </div>
-      <div class="callout info">
-        <span class="ic">💡</span>
-        <p><b class="lbl">Instance / Region 這樣選：</b>Instance 選 <b>Free</b>（512MB）。Region 免費方案只有兩個：<b>Washington, D.C.</b> 和 <b>Frankfurt</b> — 選跟你 Upstash Redis 同一區或最近的那個，登入才不會因為跨海變慢。不確定 Redis 在哪區就先選 <b>Washington, D.C.</b>。</p>
-      </div>
-      <div class="callout warn">
-        <span class="ic">🔌</span>
-        <p><b class="lbl">Port 不用改。</b>Koyeb 會自動給程式一個 <code>PORT</code>，Next.js 會自己讀，維持預設即可。Health check path 填 <code>/</code>。</p>
-      </div>
     </div>
   </section>
 
@@ -304,9 +339,35 @@
   <section>
     <div class="phase-head">
       <div class="phase-num">2</div>
-      <h2>填環境變數</h2>
+      <h2>建立 app（先不要部署）</h2>
     </div>
-    <p class="phase-sub">在建立畫面往下捲到「Environment variables」，一條一條加。值全部從 Vercel 後台抄。</p>
+    <p class="phase-sub">這步只是去 Fly 那邊把名字登記起來，還不會真的跑起來。</p>
+    <div class="card">
+      <ol class="steps">
+        <li><strong>執行 launch，但加上「先別部署」</strong>
+          <div class="cmd">
+            <button class="copy" data-c="fly launch --no-deploy --copy-config --name chb-fileflow --region nrt">複製</button>
+            <pre>fly launch --no-deploy --copy-config --name chb-fileflow --region nrt</pre>
+          </div>
+          <span class="hint"><code>--copy-config</code> = 用我寫好的 <code>fly.toml</code>，不要自作聰明重產一份。<br><code>nrt</code> = 東京機房，離台灣最近。</span>
+        </li>
+        <li><strong>它可能會問你要不要開 Postgres / Redis / Tigris</strong><span class="hint">全部回 <b>No</b>。我們的 Redis 用的是既有的 Upstash，不需要 Fly 再開一個。</span></li>
+        <li><strong>如果它說「name is already taken」</strong><span class="hint">換一個名字重打，例如 <code>chb-fileflow-tw</code>。⚠️ 換名字的話，<b>一定要跟我說</b>，因為 <code>fly.toml</code> 裡有兩處寫死了 <code>chb-fileflow.fly.dev</code> 這個網址，要一起改掉。</span></li>
+      </ol>
+      <div class="callout good">
+        <span class="ic">🎉</span>
+        <p><b class="lbl">好消息：這次沒有「先有雞還是先有蛋」。</b>Koyeb 那版要先部署才知道網址、再回頭補變數、再重新部署。Fly 的網址是<b>你自己取的名字</b>決定的 —— app 叫 <code>chb-fileflow</code>，網址就一定是 <code>https://chb-fileflow.fly.dev</code>。所以我已經先把它寫進 <code>fly.toml</code> 了，你不用再回填。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Phase 3 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">3</div>
+      <h2>設定環境變數（Fly 叫它 secrets）</h2>
+    </div>
+    <p class="phase-sub">值全部從 Vercel 後台抄。Fly 的 secrets 是加密存的，不會出現在指令紀錄以外的地方。</p>
 
     <div class="tbl-wrap">
       <table>
@@ -345,44 +406,51 @@
             <td><span class="req">必填</span></td>
           </tr>
           <tr>
-            <td><span class="kname"><code>NEXT_PUBLIC_APP_URL</code><button class="copy" data-c="NEXT_PUBLIC_APP_URL">複製</button></span></td>
-            <td class="src"><b>先跳過這條！</b>它的值是 Koyeb 網址，但要部署完才知道。Phase 3 再回來補。</td>
-            <td><span class="req">稍後</span></td>
+            <td><span class="kname"><code>NEXT_PUBLIC_APP_URL</code></span></td>
+            <td class="src"><b style="color:var(--good)">不用設！</b>已經寫死在 <code>fly.toml</code> 裡了（除非你 Phase 2 改了 app 名字）</td>
+            <td class="src">已處理</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="callout warn">
-      <span class="ic">📋</span>
-      <p><b class="lbl">怎麼從 Vercel 抄？</b>Vercel 後台 → 選 <code>fileuploader</code> 專案 → <b>Settings → Environment Variables</b>。每條點眼睛圖示顯示明文，複製貼到 Koyeb 對應欄位。Koyeb 環境變數區也有「Bulk edit」可一次貼多條，格式是 <code>KEY=value</code> 每行一條。</p>
-    </div>
-    <div class="callout info">
-      <span class="ic">🔑</span>
-      <p><b class="lbl">怎麼分辨哪些是 <code>GOOGLE_</code> 變數？</b>在 Vercel 環境變數清單裡，名字開頭是 <code>GOOGLE_</code> 的全部都要（通常有 client id、client secret、refresh token、folder id 之類）。寧可多抄，不要漏。</p>
-    </div>
-  </section>
-
-  <!-- ============ Phase 3 ============ -->
-  <section>
-    <div class="phase-head">
-      <div class="phase-num">3</div>
-      <h2>首次部署 → 拿網址 → 回填最後一條變數</h2>
-    </div>
-    <p class="phase-sub">這裡有個「先有雞還是先有蛋」的小關卡，照順序做就好。</p>
     <div class="card">
-      <ol class="steps">
-        <li><strong>幫服務取個名字（App name）</strong><span class="hint">例如 <code>chb-fileflow</code>。這個名字會變成你的網址一部分。</span></li>
-        <li><strong>點「Deploy」，等 build 跑完</strong><span class="hint">第一次約 3–6 分鐘。畫面會滾動 build log，看到 green / Healthy 就成功。</span></li>
-        <li><strong>複製 Koyeb 給你的公開網址</strong><span class="hint">長得像下面這樣（實際字尾不同）：</span>
-          <span class="path"><b>https://chb-fileflow-</b>xxxx<b>.koyeb.app</b></span>
-        </li>
-        <li><strong>回到 Settings → Environment variables，新增 <code>NEXT_PUBLIC_APP_URL</code></strong><span class="hint">值就填你上一步複製到的完整網址（含 <code>https://</code>，結尾不要斜線）。</span></li>
-        <li><strong>存檔後點「Redeploy」讓新變數生效</strong><span class="hint">封鎖警示信裡的按鈕連結要靠這條變數才會指向 Koyeb，一定要補。</span></li>
-      </ol>
-      <div class="callout good">
-        <span class="ic">✅</span>
-        <p><b class="lbl">為什麼要分兩次？</b>因為網址是 Koyeb 部署後才生成的，沒辦法事先知道。先部署拿到網址、再回填、再重新部署，這是正常流程，不是你做錯。</p>
+      <p class="para body-tight" style="margin-top:0"><strong>怎麼設？一行一行打，或一次全打完（推薦）：</strong></p>
+      <div class="cmd">
+        <button class="copy" data-c='fly secrets set AUTH_SECRET="貼上值" REDIS_URL="貼上值" BREVO_API_KEY="貼上值" BREVO_SENDER="alan0109@mail2000.com.tw" OTP_RECIPIENT="alan0109@mail2000.com.tw"'>複製</button>
+<pre><span class="cm"># 把「貼上值」三個字換成從 Vercel 抄來的內容，引號要留著</span>
+fly secrets set `
+  AUTH_SECRET="貼上值" `
+  REDIS_URL="貼上值" `
+  BREVO_API_KEY="貼上值" `
+  BREVO_SENDER="alan0109@mail2000.com.tw" `
+  OTP_RECIPIENT="alan0109@mail2000.com.tw"</pre>
+      </div>
+      <p class="para">接著把 <code>GOOGLE_</code> 開頭那組也設進去（名稱依你 Vercel 上實際的為準）：</p>
+      <div class="cmd">
+        <button class="copy" data-c='fly secrets set GOOGLE_DRIVE_CLIENT_ID="貼上值" GOOGLE_DRIVE_CLIENT_SECRET="貼上值" GOOGLE_DRIVE_REFRESH_TOKEN="貼上值"'>複製</button>
+<pre>fly secrets set `
+  GOOGLE_DRIVE_CLIENT_ID="貼上值" `
+  GOOGLE_DRIVE_CLIENT_SECRET="貼上值" `
+  GOOGLE_DRIVE_REFRESH_TOKEN="貼上值"</pre>
+      </div>
+      <p class="para">設完檢查一下（只會顯示名稱和摘要，不會印出明文，這是正常的）：</p>
+      <div class="cmd">
+        <button class="copy" data-c="fly secrets list">複製</button>
+        <pre>fly secrets list</pre>
+      </div>
+
+      <div class="callout warn">
+        <span class="ic">⌨️</span>
+        <p><b class="lbl">那些反引號 <code>`</code> 是什麼？</b>PowerShell 的「換行接續」符號，讓一行指令可以拆成好幾行比較好讀。<b>如果貼上後報錯，就把它們全刪掉、擠成一行</b>，效果一樣。</p>
+      </div>
+      <div class="callout info">
+        <span class="ic">📋</span>
+        <p><b class="lbl">怎麼從 Vercel 抄？</b>Vercel 後台 → 選 <code>fileuploader</code> 專案 → <b>Settings → Environment Variables</b>。每條點眼睛圖示顯示明文，複製貼進上面指令的引號中間。</p>
+      </div>
+      <div class="callout info">
+        <span class="ic">🔑</span>
+        <p><b class="lbl">怎麼分辨哪些是 <code>GOOGLE_</code> 變數？</b>在 Vercel 環境變數清單裡，名字開頭是 <code>GOOGLE_</code> 的全部都要（通常有 client id、client secret、refresh token、folder id 之類）。寧可多抄，不要漏。</p>
       </div>
     </div>
   </section>
@@ -391,6 +459,42 @@
   <section>
     <div class="phase-head">
       <div class="phase-num">4</div>
+      <h2>部署</h2>
+    </div>
+    <p class="phase-sub">一行指令。Fly 會在雲端照 Dockerfile 建置，不用你電腦裝 Docker。</p>
+    <div class="card">
+      <ol class="steps">
+        <li><strong>執行部署</strong>
+          <div class="cmd">
+            <button class="copy" data-c="fly deploy --remote-only">複製</button>
+            <pre>fly deploy --remote-only</pre>
+          </div>
+          <span class="hint"><code>--remote-only</code> = 用 Fly 的雲端機器建置，你本機不需要安裝 Docker Desktop。第一次約 <b>5–10 分鐘</b>。</span>
+        </li>
+        <li><strong>看到 <code>1 desired, 1 placed, 1 healthy</code> 就是成功</strong><span class="hint">畫面會滾一大堆 build log，那是正常的。</span></li>
+        <li><strong>確認狀態</strong>
+          <div class="cmd">
+            <button class="copy" data-c="fly status">複製</button>
+            <pre>fly status</pre>
+          </div>
+          <span class="hint">State 那欄要是 <code>started</code>，Health checks 要是 <code>1 total, 1 passing</code>。</span>
+        </li>
+        <li><strong>你的網址就是：</strong>
+          <span class="path"><b>https://chb-fileflow.fly.dev</b></span>
+          <span class="hint">若 Phase 2 有改過 app 名字，就換成你取的名字。</span>
+        </li>
+      </ol>
+      <div class="callout info">
+        <span class="ic">📜</span>
+        <p><b class="lbl">部署失敗看不懂？</b>打 <code>fly logs</code> 看即時錯誤訊息，把畫面截給我，我幫你判。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Phase 5 ============ -->
+  <section>
+    <div class="phase-head">
+      <div class="phase-num">5</div>
       <h2>Google OAuth 加一條重新導向網址</h2>
     </div>
     <p class="phase-sub">不加這步，登入沒問題，但 Drive 上傳會噴 401。</p>
@@ -399,7 +503,7 @@
         <li><strong>開 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → Credentials</a></strong></li>
         <li><strong>點開你現在在用的 OAuth 2.0 Client ID</strong><span class="hint">就是 Drive 上傳用的那個。</span></li>
         <li><strong>在「授權的重新導向 URI」按「+ 新增 URI」，貼上：</strong>
-          <span class="path"><span data-uri>https://（你的 Koyeb 網址）</span><b>/api/upload/gdrive-token</b></span>
+          <span class="path"><b>https://chb-fileflow.fly.dev/api/upload/gdrive-token</b></span>
         </li>
         <li><strong>存檔。舊的 Vercel 那條<u>不要刪</u></strong><span class="hint">兩邊並存，這樣 Vercel 舊站還能當備援。</span></li>
       </ol>
@@ -410,44 +514,44 @@
     </div>
   </section>
 
-  <!-- ============ Phase 5 ============ -->
+  <!-- ============ Phase 6 ============ -->
   <section>
     <div class="phase-head">
-      <div class="phase-num">5</div>
+      <div class="phase-num">6</div>
       <h2>先用手機 4G 自測（不要用行內網路）</h2>
     </div>
     <p class="phase-sub">這步是確認「功能本身正常」，跟行內封鎖無關，所以用你自己的網路測。</p>
     <div class="card">
       <ol class="steps">
-        <li><strong>手機開 4G / 熱點，開 <code>你的Koyeb網址/login</code></strong></li>
+        <li><strong>手機開 4G / 熱點，開 <code>https://chb-fileflow.fly.dev/login</code></strong><span class="hint">第一次開可能要等 3–5 秒（機器從休眠喚醒），屬正常。</span></li>
         <li><strong>輸入 email → 收得到 OTP 驗證碼</strong><span class="hint">收得到信 = Brevo、Redis 都通了。</span></li>
         <li><strong>輸入驗證碼登入成功</strong></li>
         <li><strong>傳一個小檔案，確認上傳到 Drive、清單看得到</strong><span class="hint">上傳成功 = Google OAuth 那條有生效。</span></li>
       </ol>
       <div class="callout good">
         <span class="ic">🎯</span>
-        <p><b class="lbl">四項都過</b>，代表整套系統在 Koyeb 上是活的。接下來才是真正的考驗 —— 明天在行內測。</p>
+        <p><b class="lbl">四項都過</b>，代表整套系統在 Fly.io 上是活的。接下來才是真正的考驗 —— 明天在行內測。</p>
       </div>
     </div>
   </section>
 
-  <!-- ============ Phase 6 ============ -->
+  <!-- ============ Phase 7 ============ -->
   <section>
     <div class="phase-head">
-      <div class="phase-num">6</div>
+      <div class="phase-num">7</div>
       <h2>關鍵驗證：明天，在行內電腦</h2>
     </div>
     <p class="phase-sub">這一步決定這整條路成不成。務必用<strong>行內網路</strong>的電腦測。</p>
     <div class="card">
       <p class="para body-tight" style="margin-top:0">在行內電腦的瀏覽器開：</p>
-      <span class="path"><b>https://（你的 Koyeb 網址）/login</b></span>
+      <span class="path"><b>https://chb-fileflow.fly.dev/login</b></span>
       <div class="fork">
         <div class="branch yes">
           <h4>✅ 沒跳封鎖頁</h4>
           <ul>
             <li>成功繞過了！</li>
             <li>跟我說一聲</li>
-            <li>我幫你把主站切到 Koyeb、更新交接文件，Vercel 舊站保留當備援</li>
+            <li>我幫你把主站切到 Fly.io、更新交接文件，Vercel 舊站保留當備援</li>
           </ul>
         </div>
         <div class="branch no">
@@ -456,6 +560,7 @@
             <li>這條路到底了，不用再試別的免費平台</li>
             <li>我們直接走治本：白名單申請 ＋ 綁自有網域</li>
             <li>兩件事可以並行跑</li>
+            <li>記得回頭把 Fly app 砍掉停止計費（見排錯最後一條）</li>
           </ul>
         </div>
       </div>
@@ -472,11 +577,20 @@
     </div>
     <div class="card">
       <ol class="steps">
-        <li><strong>Build 失敗（Buildpack 認不出）</strong><span class="hint">repo 裡已經備好 Dockerfile，直接到服務設定把 Builder 切成 <b>Dockerfile</b> → Save → 重跑即可，不用等我。</span></li>
-        <li><strong>網頁開得出來但一直 502 / 轉圈</strong><span class="hint">通常是 port 問題。到服務設定確認 Exposed port 用的是 Koyeb 預設值、Health check path 是 <code>/</code>。</span></li>
-        <li><strong>登入收不到 OTP 信</strong><span class="hint">先檢查 <code>BREVO_API_KEY</code>、<code>REDIS_URL</code> 有沒有抄錯或漏抄。</span></li>
-        <li><strong>能登入但上傳噴 401</strong><span class="hint">Google OAuth 重新導向 URI 沒加對，或還沒生效。回 Phase 4 核對網址、等 5 分鐘。</span></li>
-        <li><strong>第一次打開很慢（5–10 秒）</strong><span class="hint">免費方案沒人用會休眠，屬正常。若要常駐可考慮付費方案。</span></li>
+        <li><strong><code>fly</code> 不是可辨識的指令</strong><span class="hint">flyctl 裝完沒重開終端機。關掉 PowerShell 重開一個再試。</span></li>
+        <li><strong>Build 失敗</strong><span class="hint">先打 <code>fly logs</code> 看錯在哪。若是記憶體不足（build 被 kill），把 <code>fly.toml</code> 的 <code>memory</code> 暫時改成 <code>1gb</code> 再 deploy 一次。</span></li>
+        <li><strong>網頁開得出來但一直 502 / 轉圈</strong><span class="hint">port 對不上。確認 <code>fly.toml</code> 的 <code>internal_port = 8080</code> 跟 <code>Dockerfile</code> 的 <code>EXPOSE 8080</code> 一致（我已經對好了，除非有人改過）。</span></li>
+        <li><strong>登入收不到 OTP 信</strong><span class="hint">先 <code>fly secrets list</code> 確認 <code>BREVO_API_KEY</code>、<code>REDIS_URL</code> 有在清單裡；再看 <code>fly logs</code> 有沒有 Redis 連線錯誤。</span></li>
+        <li><strong>能登入但上傳噴 401</strong><span class="hint">Google OAuth 重新導向 URI 沒加對，或還沒生效。回 Phase 5 核對網址、等 5 分鐘。</span></li>
+        <li><strong>封鎖警示信裡的按鈕連到 Vercel 舊站</strong><span class="hint"><code>NEXT_PUBLIC_APP_URL</code> 沒吃到。這個值是<b>建置時</b>寫進去的，所以改完 <code>fly.toml</code> 要重跑 <code>fly deploy</code> 才會生效，光重啟沒用。</span></li>
+        <li><strong>第一次打開很慢（3–5 秒）</strong><span class="hint">機器 auto-stop 後被喚醒，屬正常。要常駐就把 <code>fly.toml</code> 的 <code>min_machines_running</code> 改成 <code>1</code>，但費用會變成固定約 US$2/月。</span></li>
+        <li><strong>不玩了，要停止計費</strong>
+          <div class="cmd">
+            <button class="copy" data-c="fly apps destroy chb-fileflow">複製</button>
+            <pre>fly apps destroy chb-fileflow</pre>
+          </div>
+          <span class="hint">⚠️ 這會把 app 整個刪掉，不可復原。確定不用了再打。</span>
+        </li>
       </ol>
     </div>
   </section>
@@ -489,17 +603,20 @@
     </div>
     <div class="card">
       <ul class="check">
-        <li><span class="box"></span><div>Koyeb 服務建好，build 顯示 Healthy</div></li>
-        <li><span class="box"></span><div>必填環境變數全部填好（<code>AUTH_SECRET</code> 跟 Vercel 同一組）</div></li>
-        <li><span class="box"></span><div><code>NEXT_PUBLIC_APP_URL</code> 已回填 Koyeb 網址並 Redeploy</div></li>
+        <li><span class="box"></span><div>flyctl 裝好，<code>fly version</code> 有回應</div></li>
+        <li><span class="box"></span><div>Fly 帳號註冊完成（信用卡已綁）</div></li>
+        <li><span class="box"></span><div><code>fly launch --no-deploy</code> 建好 app，名字是 <code>chb-fileflow</code></div></li>
+        <li><span class="box"></span><div>必填 secrets 全部設好（<code>AUTH_SECRET</code> 跟 Vercel 同一組）</div></li>
+        <li><span class="box"></span><div><code>fly deploy</code> 成功，<code>fly status</code> 顯示 healthy</div></li>
         <li><span class="box"></span><div>Google OAuth 已加 <code>/api/upload/gdrive-token</code> 重新導向</div></li>
         <li><span class="box"></span><div>手機 4G 自測：登入 ＋ 上傳都通過</div></li>
         <li><span class="box"></span><div>（明天）行內電腦開 <code>/login</code> 沒被擋 → 通知我</div></li>
+        <li><span class="box"></span><div>（一週後）到 Fly 後台 Billing 看一次實際費用</div></li>
       </ul>
     </div>
   </section>
 
-  <p class="foot">FileFlow · 彰銀資訊部　|　程式面已就緒（commit bf01fcf），本手冊涵蓋 Koyeb 面板操作</p>
+  <p class="foot">FileFlow · 彰銀資訊部　|　程式面已就緒（<code>fly.toml</code> + <code>Dockerfile</code>），本手冊涵蓋 flyctl 全部操作</p>
 
 </div>
 

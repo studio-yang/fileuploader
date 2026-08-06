@@ -1,5 +1,5 @@
-# FileFlow — Koyeb 部署備用 Dockerfile
-# 用途：當 Koyeb 的 Buildpack 自動偵測失敗時，把 Builder 改成 Dockerfile 即可。
+# FileFlow — Fly.io 部署用 Dockerfile
+# 用途：Fly.io 一律用 Dockerfile 建置（無 Buildpack 選項），對應 fly.toml。
 # 注意：Vercel 使用 nextjs preset，會忽略此檔，不影響現有部署。
 
 # ---------- 建置階段 ----------
@@ -12,6 +12,11 @@ RUN npm ci
 
 # 複製其餘原始碼並建置
 COPY . .
+
+# NEXT_PUBLIC_* 於 next build 時就會被內嵌，必須在建置階段給值（由 fly.toml 的 build.args 傳入）
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+
 RUN npm run build
 
 # ---------- 執行階段 ----------
@@ -23,6 +28,6 @@ ENV NODE_ENV=production
 # 本專案 next.config.js 未啟用 standalone，故保留完整 node_modules 才能 next start
 COPY --from=builder /app ./
 
-# Koyeb 會注入 PORT 環境變數（預設 8000）；Next.js 會讀取此變數
-EXPOSE 8000
-CMD ["sh", "-c", "npm run start -- -p ${PORT:-8000}"]
+# Fly.io 不會注入 PORT，固定監聽 8080，需與 fly.toml 的 internal_port 一致
+EXPOSE 8080
+CMD ["sh", "-c", "npm run start -- -p ${PORT:-8080}"]
