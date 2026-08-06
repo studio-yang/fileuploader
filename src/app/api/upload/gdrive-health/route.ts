@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 
 export const runtime = 'nodejs';
+// ⚠️ 不可省略：此 handler 的 GET 沒有帶 request 參數，Next.js 會在 build 階段就把回應算好並靜態化。
+// Vercel 在建置時就注入環境變數，快照剛好是對的；但 Fly 的 secrets 是執行期才注入，
+// 靜態化的結果會永遠回報「環境變數全部缺失」。強制動態才能真的即時檢查。
+export const dynamic = 'force-dynamic';
 
 /**
  * Google Drive 健康檢查（診斷用）
