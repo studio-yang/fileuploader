@@ -257,10 +257,16 @@
     <div class="meta">
       <span class="chip">預估時間 <b>50–70 分</b></span>
       <span class="chip">操作方式 <b>CLI 指令</b></span>
-      <span class="chip">成功機率 <b>30–40%</b></span>
-      <span class="chip">費用 <b>需綁卡 · 約 $0–3/月</b></span>
+      <span class="chip">行內可達性 <b>未知</b></span>
+      <span class="chip">費用 <b>需綁卡 · 約 $2/月</b></span>
     </div>
   </header>
+
+  <div class="callout good" style="margin-top:26px">
+    <span class="ic">✅</span>
+    <p><b class="lbl">2026-08-06：站台已實際部署完成並驗證通過。</b>網址 <a href="https://tdoc-fileflow.fly.dev" target="_blank" rel="noopener">https://tdoc-fileflow.fly.dev</a>，health check <code>passing</code>，外部實測 <code>GET /login</code> 回 <b>HTTP 200 · 0.27 秒</b>。</p>
+    <p>過程中踩到 <b>5 個坑</b>，修正都已進版（<code>Dockerfile</code> + <code>fly.toml</code>，commit <code>9f80db5</code>）。<b>你如果是照這份手冊重跑一次，那 5 個坑不會再遇到</b> —— 但排錯區仍保留完整記錄，供日後查因。</p>
+  </div>
 
   <div class="callout danger" style="margin-top:26px">
     <span class="ic">⚠️</span>
@@ -270,7 +276,9 @@
   <div class="callout warn">
     <span class="ic">💳</span>
     <p><b class="lbl">Fly.io 沒有「不綁卡的免費方案」，這點要先知道。</b>註冊時就會要你填信用卡（會扣約 <b>US$1 驗證</b>，之後退回）。</p>
-    <p>我們用的規格是 <code>shared-cpu-1x / 512MB</code>，而且在 <code>fly.toml</code> 裡開了 <b>auto stop</b>：沒人用的時候機器會自動關掉、不計費。以你自用的量估，實際帳單大概是 <b>每月 US$0～3</b>。⚠️ 這是我的估算不是保證，建議部署後第一週到 Fly 後台的 Billing 看一次實際數字。</p>
+    <p>我們用的規格是 <code>shared-cpu-1x / 512MB</code>，機器<b>常駐不關機</b>，估計每月 <b>約 US$2</b>。</p>
+    <p>⚠️ 原本設計是開 auto-stop（閒置自動關機、可壓到接近 $0），但<b>實測不可行</b> —— 機器停掉時 health check 會卡在 <code>critical</code> 永遠回不到 <code>passing</code>，fly-proxy 就一直回 502／503。詳見排錯區第 5 條。這是用穩定性換來的固定成本，不是設定沒調好。</p>
+    <p>這個數字是估算不是保證，建議部署後第一週到 Fly 後台的 Billing 看一次實際帳單。</p>
   </div>
 
   <!-- ============ 準備 ============ -->
@@ -364,6 +372,12 @@
         <li><strong>它可能會問你要不要開 Postgres / Redis / Tigris</strong><span class="hint">全部回 <b>No</b>。我們的 Redis 用的是既有的 Upstash，不需要 Fly 再開一個。</span></li>
         <li><strong>如果它說「name is already taken」</strong><span class="hint">換一個名字重打，例如 <code>tdoc-fileflow-tw</code>。⚠️ 換名字的話，<b>一定要跟我說</b>，因為 <code>fly.toml</code> 裡有兩處寫死了 <code>tdoc-fileflow.fly.dev</code> 這個網址，要一起改掉。</span></li>
       </ol>
+      <div class="callout danger">
+        <span class="ic">🚫</span>
+        <p><b class="lbl">絕對不要用網頁版的 Launch UI。</b>如果 Fly 把你導到網頁上的「Launch an App from GitHub」畫面，或後台出現「Launch via CLI」按鈕 —— <b>都不要按</b>。理由有二：</p>
+        <p>① 網頁流程是<b>從 GitHub 抓程式</b>，而我們的 <code>fly.toml</code> 和修好的 <code>Dockerfile</code> 若還沒 push 上去，它會拿到舊版而失敗。<br>② 它會<b>覆寫你本機的 <code>fly.toml</code></b>，把 <code>[build.args]</code> 洗掉，導致警示信連結指向錯誤網址。</p>
+        <p>網頁上那格 <b>Environment Variables</b> 也不要填 —— 那會以<b>明文</b>寫進 app config，在後台看得到。金鑰一律走 <code>fly secrets set</code>（加密儲存），見 Phase 3。</p>
+      </div>
       <div class="callout good">
         <span class="ic">🎉</span>
         <p><b class="lbl">好消息：這次沒有「先有雞還是先有蛋」。</b>Koyeb 那版要先部署才知道網址、再回頭補變數、再重新部署。Fly 的網址是<b>你自己取的名字</b>決定的 —— app 叫 <code>tdoc-fileflow</code>，網址就一定是 <code>https://tdoc-fileflow.fly.dev</code>。所以我已經先把它寫進 <code>fly.toml</code> 了，你不用再回填。</p>
@@ -494,9 +508,20 @@ fly secrets set `
           <span class="hint">若 Phase 2 有改過 app 名字，就換成你取的名字。</span>
         </li>
       </ol>
+      <div class="callout danger">
+        <span class="ic">🎭</span>
+        <p><b class="lbl">最重要的一條：CLI 說失敗，不代表真的失敗。</b>實測過程中 <code>fly deploy</code> 有<b>四次</b>回報錯誤，但其中兩次<b>其實已經部署成功</b>了。訊息長這樣：</p>
+        <p><code>net/http: request canceled</code>　或　<code>wsarecv: A connection attempt failed…</code></p>
+        <p>這是<b>你這台電腦連 <code>api.machines.dev</code> 的網路被中斷</b>，導致 CLI 等不到結果就自己宣告失敗 —— 機器在 Fly 那邊可能已經跑起來了。看到這種訊息，<b>先別重跑部署</b>，改用下面兩條指令查真實狀態：</p>
+      </div>
+      <div class="cmd">
+        <button class="copy" data-c="fly status">複製</button>
+        <pre>fly status        <span class="cm"># STATE 是 started、CHECKS 是 passing 就是成功了</span>
+fly checks list   <span class="cm"># 看 health check 實際回傳什麼</span></pre>
+      </div>
       <div class="callout info">
         <span class="ic">📜</span>
-        <p><b class="lbl">部署失敗看不懂？</b>打 <code>fly logs</code> 看即時錯誤訊息，把畫面截給我，我幫你判。</p>
+        <p><b class="lbl">真的失敗、但看不懂？</b>打 <code>fly logs</code> 看即時錯誤訊息，把畫面截給我，我幫你判。</p>
       </div>
     </div>
   </section>
@@ -509,6 +534,10 @@ fly secrets set `
     </div>
     <p class="phase-sub">不加這步，登入沒問題，但 Drive 上傳會噴 401。</p>
     <div class="card">
+      <div class="callout warn" style="margin:0 0 18px">
+        <span class="ic">⏸️</span>
+        <p><b class="lbl">本輪跳過整個 Phase 5。</b>因為 <code>GOOGLE_DRIVE_REFRESH_TOKEN</code> 讀不到、Drive 沒設定，加了重新導向網址也沒用。以下步驟留著，等日後要處理 Drive 時再照做。</p>
+      </div>
       <ol class="steps">
         <li><strong>開 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → Credentials</a></strong></li>
         <li><strong>點開你現在在用的 OAuth 2.0 Client ID</strong><span class="hint">就是 Drive 上傳用的那個。</span></li>
@@ -533,11 +562,16 @@ fly secrets set `
     <p class="phase-sub">這步是確認「功能本身正常」，跟行內封鎖無關，所以用你自己的網路測。</p>
     <div class="card">
       <ol class="steps">
-        <li><strong>手機開 4G / 熱點，開 <code>https://tdoc-fileflow.fly.dev/login</code></strong><span class="hint">第一次開可能要等 3–5 秒（機器從休眠喚醒），屬正常。</span></li>
+        <li><strong>手機開 4G / 熱點，開 <code>https://tdoc-fileflow.fly.dev/login</code></strong><span class="hint">機器是常駐的，應該<b>秒開</b>（實測 0.27 秒）。若要等好幾秒，那不正常，跟我說。</span></li>
         <li><strong>輸入 email → 收得到 OTP 驗證碼</strong><span class="hint">收得到信 = Brevo、Redis 都通了。</span></li>
-        <li><strong>輸入驗證碼登入成功</strong></li>
-        <li><strong>傳一個小檔案，確認上傳到 Drive、清單看得到</strong><span class="hint">上傳成功 = Google OAuth 那條有生效。</span></li>
+        <li><strong>輸入驗證碼登入成功</strong><span class="hint">登得進去 = <code>AUTH_SECRET</code>、JWT 簽發都正常。</span></li>
+        <li><strong>傳一個小檔案，provider 選 <u>GitHub</u></strong><span class="hint">上傳成功 = GitHub Releases 那條通了。檔案會進 <code>studio-yang/fileuploader</code> 的 <code>fileflow-uploads</code> release。</span></li>
       </ol>
+      <div class="callout warn">
+        <span class="ic">🔕</span>
+        <p><b class="lbl">Google Drive 這輪不會通，這是刻意的。</b>選 Drive 上傳會噴 <b>HTTP 500 · <code>missing_env</code></b> —— 因為 <code>GOOGLE_DRIVE_REFRESH_TOKEN</code> 在 Vercel 被設為 Sensitive 讀不出來，我們決定<b>先不重產</b>（那條 token 已經壞過 5 次，為了一個還沒驗證的備援站去動它，風險跟收益不成比例）。</p>
+        <p>所以 Phase 5 的 Google OAuth 設定<b>這輪也跳過</b>。等行內測試確認這條路可行，再回頭專門處理 Drive。</p>
+      </div>
       <div class="callout good">
         <span class="ic">🎯</span>
         <p><b class="lbl">四項都過</b>，代表整套系統在 Fly.io 上是活的。接下來才是真正的考驗 —— 明天在行內測。</p>
@@ -574,6 +608,12 @@ fly secrets set `
           </ul>
         </div>
       </div>
+
+      <div class="callout warn">
+        <span class="ic">🌐</span>
+        <p><b class="lbl">先別急著判定「被擋」—— 有第三種可能。</b>實測發現<b>你這台電腦到 Fly 的 IPv6 是不通的</b>（IPv4 打 <code>/login</code> 回 200，IPv6 連不上）。</p>
+        <p>如果行內網路也這樣，瀏覽器理論上會自動 fallback 到 IPv4，但<b>可能要先等 IPv6 逾時</b>。所以若明天開起來是「<u>轉圈很久</u>」而不是「<u>跳出封鎖頁</u>」，那大概率是 IPv6 問題，不是 F-ISAC。<b>兩者要分清楚，結論完全不同。</b>把畫面截給我判斷。</p>
+      </div>
     </div>
   </section>
 
@@ -585,22 +625,42 @@ fly secrets set `
       <div class="phase-num">?</div>
       <h2>卡住了？對照這裡</h2>
     </div>
+    <p class="phase-sub">前 5 條是 2026-08-06 首次部署時實際踩到的坑，修正都已進版。</p>
+
     <div class="card">
-      <ol class="steps">
+      <p class="para body-tight" style="margin-top:0"><strong>🔴 五個實戰坑（已修好，此處留存原因）</strong></p>
+      <p class="para" style="font-size:14px">共同點：<b>沒有一個是 Fly.io 的問題</b>，全是這個 app 第一次離開 Vercel serverless 環境才浮現的體質問題。Vercel 幫你擋掉了這些，所以在那邊永遠遇不到。</p>
+      <ol class="steps" style="margin-top:16px">
+        <li><strong>① <code>npm ci</code> 失敗：<code>Missing: gaxios@7 … from lock file</code></strong><span class="hint">不是相依性壞掉，是 <b>npm 版本差異</b>。<code>package-lock.json</code> 由本機 npm 11 產生，但 <code>node:20-alpine</code> 內建 npm 10 會解析出不同的相依樹。<br><b>修法：</b>Dockerfile 加 <code>RUN npm install -g npm@11</code> 對齊版本。<u>不動 lock 檔</u>，才不會波及 Vercel 正式站。</span></li>
+        <li><strong>② <code>npm ci</code> 失敗：<code>gyp ERR! find Python</code></strong><span class="hint">相依樹裡的 <code>better-sqlite3</code> 是原生模組，要編譯，但 alpine 沒有 Python 和編譯器。<br>它是 <code>mem0ai</code> 帶進來的 —— 而 <code>mem0ai</code> 只有本機的 <code>scripts/mem0-*.mjs</code> 在用，<code>src/</code> 根本沒 import，卻被放在 <code>dependencies</code> 裡。<br><b>修法：</b>Dockerfile 加 <code>RUN apk add --no-cache python3 make g++</code>。<br><b>治本（未做）：</b>把 <code>mem0ai</code> 移到 <code>devDependencies</code> —— 但那要動 <code>package.json</code>，會影響 Vercel，該另開任務處理。</span></li>
+        <li><strong>③ health check <code>connect: connection refused</code>（第一版）</strong><span class="hint">啟動 log 只印 <code>- Local: http://localhost:8080</code>、沒有 <code>Network</code> 那行 = Next.js <b>只綁在 localhost</b>。<br>原因：Fly 會注入 <code>HOSTNAME=&lt;machine-id&gt;</code>，<code>next start</code> 拿它當預設綁定位址，解不出來就退回 localhost。</span></li>
+        <li><strong>④ health check <code>connection refused</code>（第二版，同樣訊息不同病因）</strong><span class="hint">加了 <code>-H 0.0.0.0</code> 之後<b>還是</b>refused。SSH 進機器打 <code>netstat -tln</code> 才看到真相：<br><code>tcp  0.0.0.0:8080  LISTEN</code>（Next.js，<b>只有 IPv4</b>）<br><code>tcp  fdaa:…:22   LISTEN</code>（SSH，<b>IPv6</b>）<br><b>Fly 內部網路是 IPv6</b>，綁 <code>0.0.0.0</code> 只吃 IPv4，健康檢查一樣打不進來。<br><b>修法：</b>綁 <code>-H ::</code>，Node 雙棧模式 IPv4／IPv6 通吃。⚠️ 這是最隱蔽的一個，錯誤訊息跟 ③ 一模一樣。</span></li>
+        <li><strong>⑤ auto-stop 造成的死結（設計層級問題）</strong><span class="hint">機器閒置自動關機後，health check 回報 <code>the machine hasn't started</code> → 永遠到不了 <code>passing</code> → fly-proxy 拒絕轉送 → 外部一直 502／503 → 沒有流量進得來喚醒機器。<b>轉不出來的循環。</b><br>而且冷啟動約需 33 秒（開機 25s + Next.js 8s），也超過 proxy 的等待上限。<br><b>修法：</b><code>auto_stop_machines = 'off'</code> + <code>min_machines_running = 1</code>。代價是每月固定約 US$2。</span></li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <p class="para body-tight" style="margin-top:0"><strong>⚪ 其他一般狀況</strong></p>
+      <ol class="steps" style="margin-top:16px">
+        <li><strong><code>fly deploy</code> 說失敗，但可能是假的</strong><span class="hint">看到 <code>net/http: request canceled</code> 或 <code>wsarecv: A connection attempt failed…</code> —— 這是你這台連 <code>api.machines.dev</code> 斷線，不是部署失敗。<b>先跑 <code>fly status</code> 確認</b>，<code>started</code> + <code>passing</code> 就是成功了，別急著重跑。</span></li>
         <li><strong>「無法辨識 <code>pwsh</code> 詞彙」</strong><span class="hint">你抄到 Fly 官網的 PowerShell 7 版指令了。把 <code>pwsh -Command "…"</code> 這層外殼拿掉，只留引號裡面那段，見 Phase 1 步驟 1。</span></li>
         <li><strong><code>fly</code> 不是可辨識的指令</strong><span class="hint">flyctl 裝完沒重開終端機。關掉 PowerShell 重開一個再試。</span></li>
-        <li><strong>Build 失敗</strong><span class="hint">先打 <code>fly logs</code> 看錯在哪。若是記憶體不足（build 被 kill），把 <code>fly.toml</code> 的 <code>memory</code> 暫時改成 <code>1gb</code> 再 deploy 一次。</span></li>
-        <li><strong>網頁開得出來但一直 502 / 轉圈</strong><span class="hint">port 對不上。確認 <code>fly.toml</code> 的 <code>internal_port = 8080</code> 跟 <code>Dockerfile</code> 的 <code>EXPOSE 8080</code> 一致（我已經對好了，除非有人改過）。</span></li>
+        <li><strong>Build 被 OOM kill</strong><span class="hint">把 <code>fly.toml</code> 的 <code>memory</code> 暫時改成 <code>1gb</code>，deploy 完再改回 <code>512mb</code>。</span></li>
         <li><strong>登入收不到 OTP 信</strong><span class="hint">先 <code>fly secrets list</code> 確認 <code>BREVO_API_KEY</code>、<code>REDIS_URL</code> 有在清單裡；再看 <code>fly logs</code> 有沒有 Redis 連線錯誤。</span></li>
-        <li><strong>能登入但上傳噴 401</strong><span class="hint">Google OAuth 重新導向 URI 沒加對，或還沒生效。回 Phase 5 核對網址、等 5 分鐘。</span></li>
-        <li><strong>封鎖警示信裡的按鈕連到 Vercel 舊站</strong><span class="hint"><code>NEXT_PUBLIC_APP_URL</code> 沒吃到。這個值是<b>建置時</b>寫進去的，所以改完 <code>fly.toml</code> 要重跑 <code>fly deploy</code> 才會生效，光重啟沒用。</span></li>
-        <li><strong>第一次打開很慢（3–5 秒）</strong><span class="hint">機器 auto-stop 後被喚醒，屬正常。要常駐就把 <code>fly.toml</code> 的 <code>min_machines_running</code> 改成 <code>1</code>，但費用會變成固定約 US$2/月。</span></li>
+        <li><strong>封鎖警示信裡的按鈕連到 Vercel 舊站</strong><span class="hint"><code>NEXT_PUBLIC_APP_URL</code> 沒吃到。這個值是<b>建置時</b>內嵌的，改完 <code>fly.toml</code> 一定要重跑 <code>fly deploy</code>，光 <code>fly machine restart</code> 沒用。</span></li>
+        <li><strong>要看機器裡面到底在跑什麼</strong>
+          <div class="cmd">
+            <button class="copy" data-c="fly ssh console -C &quot;netstat -tln&quot;">複製</button>
+            <pre>fly ssh console -C "netstat -tln"</pre>
+          </div>
+          <span class="hint">坑 ④ 就是這樣抓出來的 —— 比看 log 猜測可靠得多。機器要在 <code>started</code> 狀態才連得進去。</span>
+        </li>
         <li><strong>不玩了，要停止計費</strong>
           <div class="cmd">
             <button class="copy" data-c="fly apps destroy tdoc-fileflow">複製</button>
             <pre>fly apps destroy tdoc-fileflow</pre>
           </div>
-          <span class="hint">⚠️ 這會把 app 整個刪掉，不可復原。確定不用了再打。</span>
+          <span class="hint">⚠️ 這會把 app 整個刪掉，不可復原。確定不用了再打。<b>機器是常駐計費的</b>，確定不用一定要記得刪。</span>
         </li>
       </ol>
     </div>
@@ -614,20 +674,21 @@ fly secrets set `
     </div>
     <div class="card">
       <ul class="check">
-        <li><span class="box"></span><div>flyctl 裝好，<code>fly version</code> 有回應</div></li>
-        <li><span class="box"></span><div>Fly 帳號註冊完成（信用卡已綁）</div></li>
-        <li><span class="box"></span><div><code>fly launch --no-deploy</code> 建好 app，名字是 <code>tdoc-fileflow</code></div></li>
-        <li><span class="box"></span><div>必填 secrets 全部設好（<code>AUTH_SECRET</code> 跟 Vercel 同一組）</div></li>
-        <li><span class="box"></span><div><code>fly deploy</code> 成功，<code>fly status</code> 顯示 healthy</div></li>
-        <li><span class="box"></span><div>Google OAuth 已加 <code>/api/upload/gdrive-token</code> 重新導向</div></li>
-        <li><span class="box"></span><div>手機 4G 自測：登入 ＋ 上傳都通過</div></li>
-        <li><span class="box"></span><div>（明天）行內電腦開 <code>/login</code> 沒被擋 → 通知我</div></li>
+        <li><span class="box" style="background:var(--good);border-color:var(--good)"></span><div><s>flyctl 裝好，<code>fly version</code> 有回應</s>　<b style="color:var(--good)">✓ 完成</b></div></li>
+        <li><span class="box" style="background:var(--good);border-color:var(--good)"></span><div><s>Fly 帳號註冊完成（信用卡已綁）</s>　<b style="color:var(--good)">✓ 完成</b></div></li>
+        <li><span class="box" style="background:var(--good);border-color:var(--good)"></span><div><s>建好 app，名字是 <code>tdoc-fileflow</code></s>　<b style="color:var(--good)">✓ 完成</b></div></li>
+        <li><span class="box" style="background:var(--good);border-color:var(--good)"></span><div><s>8 條 secrets 設好（<code>AUTH_SECRET</code> 跟 Vercel 同一組）</s>　<b style="color:var(--good)">✓ 完成</b></div></li>
+        <li><span class="box" style="background:var(--good);border-color:var(--good)"></span><div><s><code>fly deploy</code> 成功，check <code>passing</code>，<code>/login</code> 回 200</s>　<b style="color:var(--good)">✓ 完成</b></div></li>
+        <li><span class="box"></span><div><b>手機 4G 自測</b>：登入 ＋ 上傳（provider 選 GitHub）都通過</div></li>
+        <li><span class="box"></span><div><b>（明天）行內電腦</b>開 <code>/login</code> 沒被擋 → 通知我</div></li>
         <li><span class="box"></span><div>（一週後）到 Fly 後台 Billing 看一次實際費用</div></li>
+        <li><span class="box"></span><div>把本機 commit <code>git push origin main</code> 推上 GitHub</div></li>
+        <li><span class="box"></span><div><span style="color:var(--ink-faint)">（日後）處理 Drive：重產 refresh token → 設 secrets → 補 Phase 5 的 OAuth 重新導向</span></div></li>
       </ul>
     </div>
   </section>
 
-  <p class="foot">FileFlow · 彰銀資訊部　|　程式面已就緒（<code>fly.toml</code> + <code>Dockerfile</code>），本手冊涵蓋 flyctl 全部操作</p>
+  <p class="foot">FileFlow · 彰銀資訊部　|　首次部署完成並驗證於 2026-08-06（commit <code>9f80db5</code>）　|　站台：tdoc-fileflow.fly.dev</p>
 
 </div>
 
