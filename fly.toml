@@ -21,12 +21,14 @@ primary_region = 'nrt'
   internal_port = 8080
   force_https = true
 
-  # ⚠️ 不可改回 auto-stop：機器停掉時 health check 會回報 "the machine hasn't started"，
-  # 永遠到不了 passing，fly-proxy 就拒絕轉送流量（502/503）；而冷啟動約需 33 秒
-  # （開機 25s + Next.js 8s）也超過 proxy 的等待上限。常駐是目前唯一穩定的組態。
-  auto_stop_machines = 'off'
+  # auto-stop：閒置自動關機以省費用，有請求時由 fly-proxy 喚醒。
+  # ⚠️ 2026-08-06 首次部署時曾因此出現 502 死結而改成常駐，但當時同一輪也修了 IPv6 綁定，
+  #    兩件事沒有分開驗證 —— 死結的真因很可能是 IPv6 而非 auto-stop。此處重新啟用以驗證。
+  # ⚠️ 代價：冷啟動約 33 秒（開機 25s + Next.js 8s），使用者體感是「點進去空等」。
+  #    若同仁回報開站很慢，把下面兩行改回 'off' / 1 即可復原。
+  auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
 
   [[http_service.checks]]
     interval = '30s'
@@ -36,7 +38,9 @@ primary_region = 'nrt'
     path = '/login'
 
 [[vm]]
+  # 實測 app 閒置吃 132MB（512MB 機器上 available 308MB），降到 256MB 後餘裕約 70MB。
+  # ⚠️ 很緊。若 fly logs 出現 OOM / 機器無故重啟，改回 512 即可。
   size = 'shared-cpu-1x'
-  memory = '512mb'
+  memory = '256mb'
   cpus = 1
-  memory_mb = 512
+  memory_mb = 256

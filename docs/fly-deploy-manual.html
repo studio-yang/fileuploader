@@ -276,9 +276,9 @@
   <div class="callout warn">
     <span class="ic">💳</span>
     <p><b class="lbl">Fly.io 沒有「不綁卡的免費方案」，這點要先知道。</b>註冊時就會要你填信用卡（會扣約 <b>US$1 驗證</b>，之後退回）。</p>
-    <p>我們用的規格是 <code>shared-cpu-1x / 512MB</code>，機器<b>常駐不關機</b>，估計每月 <b>約 US$2</b>。</p>
-    <p>⚠️ 原本設計是開 auto-stop（閒置自動關機、可壓到接近 $0），但<b>實測不可行</b> —— 機器停掉時 health check 會卡在 <code>critical</code> 永遠回不到 <code>passing</code>，fly-proxy 就一直回 502／503。詳見排錯區第 5 條。這是用穩定性換來的固定成本，不是設定沒調好。</p>
-    <p>這個數字是估算不是保證，建議部署後第一週到 Fly 後台的 Billing 看一次實際帳單。</p>
+    <p>規格 <code>shared-cpu-1x / 256MB</code>（東京），24 小時全開的話是 <b>US$2.02/月</b>；但我們開了 <b>auto-stop</b>，閒置時機器會關掉不計費。以上班時段才有人用估算，機器費大約 <b>US$0.5/月</b>（約 NT$16）。</p>
+    <p>⚠️ <b>真正會長大的是流量費，不是機器費。</b>東京對外流量 <b>US$0.04/GB 且無免費額度</b>，而 Fly 官方<b>不提供任何支出上限或帳單警示</b>（連預付點數都不是上限，用完直接扣卡）。每月傳 200GB 就是 US$8，1TB 就是 US$40 —— 會隨使用量線性成長且沒有煞車。</p>
+    <p>⚠️ 因為行內會擋 Drive／GitHub 網域，檔案<b>必須</b>穿過 Fly，這筆流量費省不掉（除非改儲存後端）。<b>請每週到 Fly 後台 Billing 看一次實際數字。</b></p>
   </div>
 
   <!-- ============ 準備 ============ -->
@@ -635,7 +635,7 @@ fly checks list   <span class="cm"># 看 health check 實際回傳什麼</span><
         <li><strong>② <code>npm ci</code> 失敗：<code>gyp ERR! find Python</code></strong><span class="hint">相依樹裡的 <code>better-sqlite3</code> 是原生模組，要編譯，但 alpine 沒有 Python 和編譯器。<br>它是 <code>mem0ai</code> 帶進來的 —— 而 <code>mem0ai</code> 只有本機的 <code>scripts/mem0-*.mjs</code> 在用，<code>src/</code> 根本沒 import，卻被放在 <code>dependencies</code> 裡。<br><b>修法：</b>Dockerfile 加 <code>RUN apk add --no-cache python3 make g++</code>。<br><b>治本（未做）：</b>把 <code>mem0ai</code> 移到 <code>devDependencies</code> —— 但那要動 <code>package.json</code>，會影響 Vercel，該另開任務處理。</span></li>
         <li><strong>③ health check <code>connect: connection refused</code>（第一版）</strong><span class="hint">啟動 log 只印 <code>- Local: http://localhost:8080</code>、沒有 <code>Network</code> 那行 = Next.js <b>只綁在 localhost</b>。<br>原因：Fly 會注入 <code>HOSTNAME=&lt;machine-id&gt;</code>，<code>next start</code> 拿它當預設綁定位址，解不出來就退回 localhost。</span></li>
         <li><strong>④ health check <code>connection refused</code>（第二版，同樣訊息不同病因）</strong><span class="hint">加了 <code>-H 0.0.0.0</code> 之後<b>還是</b>refused。SSH 進機器打 <code>netstat -tln</code> 才看到真相：<br><code>tcp  0.0.0.0:8080  LISTEN</code>（Next.js，<b>只有 IPv4</b>）<br><code>tcp  fdaa:…:22   LISTEN</code>（SSH，<b>IPv6</b>）<br><b>Fly 內部網路是 IPv6</b>，綁 <code>0.0.0.0</code> 只吃 IPv4，健康檢查一樣打不進來。<br><b>修法：</b>綁 <code>-H ::</code>，Node 雙棧模式 IPv4／IPv6 通吃。⚠️ 這是最隱蔽的一個，錯誤訊息跟 ③ 一模一樣。</span></li>
-        <li><strong>⑤ auto-stop 造成的死結（設計層級問題）</strong><span class="hint">機器閒置自動關機後，health check 回報 <code>the machine hasn't started</code> → 永遠到不了 <code>passing</code> → fly-proxy 拒絕轉送 → 外部一直 502／503 → 沒有流量進得來喚醒機器。<b>轉不出來的循環。</b><br>而且冷啟動約需 33 秒（開機 25s + Next.js 8s），也超過 proxy 的等待上限。<br><b>修法：</b><code>auto_stop_machines = 'off'</code> + <code>min_machines_running = 1</code>。代價是每月固定約 US$2。</span></li>
+        <li><strong>⑤ 「auto-stop 造成 502 死結」—— <u>這條是誤判，已更正</u></strong><span class="hint">當時的現象是真的（機器停掉後外部一直 502／503），但<b>歸因錯了</b>。我在同一輪部署裡同時改了 IPv6 綁定和關掉 auto-stop，兩件事沒有分開驗證就下結論。<br><b>真因是坑 ④ 的 IPv6 綁定</b> —— 健康檢查根本連不上 app，跟機器停不停無關。<br><b>2026-08-06 實測更正：</b>IPv6 修好後重新開啟 auto-stop，<b>完全正常</b>。停機後打 <code>/login</code> 回 <b>HTTP 200，冷啟動 10.3 秒</b>（我原本估 33 秒，高估了 3 倍）。<br><b>教訓：一次只改一件事，否則歸因必錯。</b></span></li>
       </ol>
     </div>
 
