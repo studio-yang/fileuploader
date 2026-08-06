@@ -1,18 +1,18 @@
 # FileFlow — Fly.io 部署設定
 # 用途：Vercel 之外的備援部署平台（取代原先評估的 Koyeb）。
 # ⚠️ 改 app 名稱時，下面三處的網址要一起改（app / build.args / env）。
-app = "chb-fileflow"
+app = "tdoc-fileflow"
 primary_region = "nrt"
 
 [build]
   # NEXT_PUBLIC_* 會在 next build 階段被內嵌進 bundle，
   # 因此必須用 build arg 於「建置時」提供，不能只靠執行期的 secrets。
   [build.args]
-    NEXT_PUBLIC_APP_URL = "https://chb-fileflow.fly.dev"
+    NEXT_PUBLIC_APP_URL = "https://tdoc-fileflow.fly.dev"
 
 [env]
   # 執行期也給一份：伺服器端（封鎖警示信的動作按鈕連結）讀的是這個值。
-  NEXT_PUBLIC_APP_URL = "https://chb-fileflow.fly.dev"
+  NEXT_PUBLIC_APP_URL = "https://tdoc-fileflow.fly.dev"
 
 [http_service]
   # 需與 Dockerfile 的 EXPOSE / 啟動 port 一致

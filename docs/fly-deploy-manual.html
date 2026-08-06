@@ -356,17 +356,17 @@
       <ol class="steps">
         <li><strong>執行 launch，但加上「先別部署」</strong>
           <div class="cmd">
-            <button class="copy" data-c="fly launch --no-deploy --copy-config --name chb-fileflow --region nrt">複製</button>
-            <pre>fly launch --no-deploy --copy-config --name chb-fileflow --region nrt</pre>
+            <button class="copy" data-c="fly launch --no-deploy --copy-config --name tdoc-fileflow --region nrt">複製</button>
+            <pre>fly launch --no-deploy --copy-config --name tdoc-fileflow --region nrt</pre>
           </div>
           <span class="hint"><code>--copy-config</code> = 用我寫好的 <code>fly.toml</code>，不要自作聰明重產一份。<br><code>nrt</code> = 東京機房，離台灣最近。</span>
         </li>
         <li><strong>它可能會問你要不要開 Postgres / Redis / Tigris</strong><span class="hint">全部回 <b>No</b>。我們的 Redis 用的是既有的 Upstash，不需要 Fly 再開一個。</span></li>
-        <li><strong>如果它說「name is already taken」</strong><span class="hint">換一個名字重打，例如 <code>chb-fileflow-tw</code>。⚠️ 換名字的話，<b>一定要跟我說</b>，因為 <code>fly.toml</code> 裡有兩處寫死了 <code>chb-fileflow.fly.dev</code> 這個網址，要一起改掉。</span></li>
+        <li><strong>如果它說「name is already taken」</strong><span class="hint">換一個名字重打，例如 <code>tdoc-fileflow-tw</code>。⚠️ 換名字的話，<b>一定要跟我說</b>，因為 <code>fly.toml</code> 裡有兩處寫死了 <code>tdoc-fileflow.fly.dev</code> 這個網址，要一起改掉。</span></li>
       </ol>
       <div class="callout good">
         <span class="ic">🎉</span>
-        <p><b class="lbl">好消息：這次沒有「先有雞還是先有蛋」。</b>Koyeb 那版要先部署才知道網址、再回頭補變數、再重新部署。Fly 的網址是<b>你自己取的名字</b>決定的 —— app 叫 <code>chb-fileflow</code>，網址就一定是 <code>https://chb-fileflow.fly.dev</code>。所以我已經先把它寫進 <code>fly.toml</code> 了，你不用再回填。</p>
+        <p><b class="lbl">好消息：這次沒有「先有雞還是先有蛋」。</b>Koyeb 那版要先部署才知道網址、再回頭補變數、再重新部署。Fly 的網址是<b>你自己取的名字</b>決定的 —— app 叫 <code>tdoc-fileflow</code>，網址就一定是 <code>https://tdoc-fileflow.fly.dev</code>。所以我已經先把它寫進 <code>fly.toml</code> 了，你不用再回填。</p>
       </div>
     </div>
   </section>
@@ -490,7 +490,7 @@ fly secrets set `
           <span class="hint">State 那欄要是 <code>started</code>，Health checks 要是 <code>1 total, 1 passing</code>。</span>
         </li>
         <li><strong>你的網址就是：</strong>
-          <span class="path"><b>https://chb-fileflow.fly.dev</b></span>
+          <span class="path"><b>https://tdoc-fileflow.fly.dev</b></span>
           <span class="hint">若 Phase 2 有改過 app 名字，就換成你取的名字。</span>
         </li>
       </ol>
@@ -513,7 +513,7 @@ fly secrets set `
         <li><strong>開 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → Credentials</a></strong></li>
         <li><strong>點開你現在在用的 OAuth 2.0 Client ID</strong><span class="hint">就是 Drive 上傳用的那個。</span></li>
         <li><strong>在「授權的重新導向 URI」按「+ 新增 URI」，貼上：</strong>
-          <span class="path"><b>https://chb-fileflow.fly.dev/api/upload/gdrive-token</b></span>
+          <span class="path"><b>https://tdoc-fileflow.fly.dev/api/upload/gdrive-token</b></span>
         </li>
         <li><strong>存檔。舊的 Vercel 那條<u>不要刪</u></strong><span class="hint">兩邊並存，這樣 Vercel 舊站還能當備援。</span></li>
       </ol>
@@ -533,7 +533,7 @@ fly secrets set `
     <p class="phase-sub">這步是確認「功能本身正常」，跟行內封鎖無關，所以用你自己的網路測。</p>
     <div class="card">
       <ol class="steps">
-        <li><strong>手機開 4G / 熱點，開 <code>https://chb-fileflow.fly.dev/login</code></strong><span class="hint">第一次開可能要等 3–5 秒（機器從休眠喚醒），屬正常。</span></li>
+        <li><strong>手機開 4G / 熱點，開 <code>https://tdoc-fileflow.fly.dev/login</code></strong><span class="hint">第一次開可能要等 3–5 秒（機器從休眠喚醒），屬正常。</span></li>
         <li><strong>輸入 email → 收得到 OTP 驗證碼</strong><span class="hint">收得到信 = Brevo、Redis 都通了。</span></li>
         <li><strong>輸入驗證碼登入成功</strong></li>
         <li><strong>傳一個小檔案，確認上傳到 Drive、清單看得到</strong><span class="hint">上傳成功 = Google OAuth 那條有生效。</span></li>
@@ -554,7 +554,7 @@ fly secrets set `
     <p class="phase-sub">這一步決定這整條路成不成。務必用<strong>行內網路</strong>的電腦測。</p>
     <div class="card">
       <p class="para body-tight" style="margin-top:0">在行內電腦的瀏覽器開：</p>
-      <span class="path"><b>https://chb-fileflow.fly.dev/login</b></span>
+      <span class="path"><b>https://tdoc-fileflow.fly.dev/login</b></span>
       <div class="fork">
         <div class="branch yes">
           <h4>✅ 沒跳封鎖頁</h4>
@@ -597,8 +597,8 @@ fly secrets set `
         <li><strong>第一次打開很慢（3–5 秒）</strong><span class="hint">機器 auto-stop 後被喚醒，屬正常。要常駐就把 <code>fly.toml</code> 的 <code>min_machines_running</code> 改成 <code>1</code>，但費用會變成固定約 US$2/月。</span></li>
         <li><strong>不玩了，要停止計費</strong>
           <div class="cmd">
-            <button class="copy" data-c="fly apps destroy chb-fileflow">複製</button>
-            <pre>fly apps destroy chb-fileflow</pre>
+            <button class="copy" data-c="fly apps destroy tdoc-fileflow">複製</button>
+            <pre>fly apps destroy tdoc-fileflow</pre>
           </div>
           <span class="hint">⚠️ 這會把 app 整個刪掉，不可復原。確定不用了再打。</span>
         </li>
@@ -616,7 +616,7 @@ fly secrets set `
       <ul class="check">
         <li><span class="box"></span><div>flyctl 裝好，<code>fly version</code> 有回應</div></li>
         <li><span class="box"></span><div>Fly 帳號註冊完成（信用卡已綁）</div></li>
-        <li><span class="box"></span><div><code>fly launch --no-deploy</code> 建好 app，名字是 <code>chb-fileflow</code></div></li>
+        <li><span class="box"></span><div><code>fly launch --no-deploy</code> 建好 app，名字是 <code>tdoc-fileflow</code></div></li>
         <li><span class="box"></span><div>必填 secrets 全部設好（<code>AUTH_SECRET</code> 跟 Vercel 同一組）</div></li>
         <li><span class="box"></span><div><code>fly deploy</code> 成功，<code>fly status</code> 顯示 healthy</div></li>
         <li><span class="box"></span><div>Google OAuth 已加 <code>/api/upload/gdrive-token</code> 重新導向</div></li>
