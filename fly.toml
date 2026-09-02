@@ -38,9 +38,11 @@ primary_region = 'nrt'
     path = '/login'
 
 [[vm]]
-  # 實測 app 閒置吃 132MB（512MB 機器上 available 308MB），降到 256MB 後餘裕約 70MB。
-  # ⚠️ 很緊。若 fly logs 出現 OOM / 機器無故重啟，改回 512 即可。
+  # 🔴 不可再降到 256MB —— 2026-09-02 已實測失敗：下載檔案時記憶體不足，
+  #    2 分鐘內 next-server 被 OOM killer 殺掉 7 次，機器不斷重開，下載直接中斷。
+  #    512MB 閒置佔 132MB、餘裕 308MB，是目前唯一驗證過穩定的組態。
+  #    降到 256MB 每月只省約 NT$10（auto-stop 已讓機器費趨近於零），不值得拿下載功能去換。
   size = 'shared-cpu-1x'
-  memory = '256mb'
+  memory = '512mb'
   cpus = 1
-  memory_mb = 256
+  memory_mb = 512
